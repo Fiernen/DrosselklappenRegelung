@@ -41,3 +41,30 @@ Frequenz von 1Hz
 Bei der Implementierung der Softwarefunktionen sollen floating point Operationen 
 vermieden werden. Die Umsetzung der Softwarefunktionen soll nach dem V-Modell 
 erfolgen.
+
+
+H-Brücke :
+Erklärung zur Funktionsweise:
+An den IN Stecker muss ein PWM-Signal angelegt werden. Ist dabei ein Verhältnis von 50%
+5V zu 50% 0V eingestellt, wird der Motor bestromt und bringt dabei ein Haltemoment auf.
+Wird das Verhältnis größer als 50% eingestellt, beginnt der Motor sich zu drehen. Je größer
+das Verhältnis wird, desto schneller dreht er sich.
+Bei einem Verhältnis kleiner 50% dreht der Motor in die andere Richtung. (siehe Bild)
+Als Startsignal kann
+EN
+verwendet werden. Erst wenn dieses Signal auf GND gelegt wird,
+startet der Motor Die PWM sollte eine minimale Frequenz von 200 Hz haben.
+Stecker 6 Strommessung 0,1V / 1A (über Sense Anschluss 10)
+Stecker 10 IN
+Stecker 12
+EN
+Stecker 13 5V
+Stecker 14 GND
+Stecker 17 Poti 2 Abgriff
+Stecker 18 Poti
+Stecker 19 Poti
+Stecker 20 Poti 1 Abgriff
+Imax 4 A
+Uein 24V
+Betriebsmodus L6203: Two Phase Chopping
+}Versorgung mit 5V und GND

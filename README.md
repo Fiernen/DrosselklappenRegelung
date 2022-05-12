@@ -11,7 +11,7 @@ Regelung der Winkelposition:
 
 4 zeitdiskreter PI-Drehzahlregler
 
-
+ghr
 
 
 

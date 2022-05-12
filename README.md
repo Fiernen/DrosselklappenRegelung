@@ -1,10 +1,12 @@
 # DrosselklappenRegelung
+
 Regelung der Winkelposition:
 1 Redundante Potenziometer als Winkelsensor an der Motorwelle
 2 Ansteuerung des Antriebs über PWM 
 3 zeitdiskreter P-Lageregler mit einer maximal zulässigen Regelabweichung von +/-
 0,1° 
 4 zeitdiskreter PI-Drehzahlregler
+
 Bedienung und Visualisierung:
 5 Sollwertvorgabe der Drosselklappenstellung über Potentiometer mit einer 
 Auflösung von 0,1°

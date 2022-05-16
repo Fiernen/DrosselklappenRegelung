@@ -51,6 +51,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-Code\.vs\
-*.bak
+Code/.vs/*
+Code/.vscode/*
 Code/.vs/DrosselklappenRegelung/v14/.atsuo

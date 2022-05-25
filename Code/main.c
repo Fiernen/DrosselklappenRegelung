@@ -16,6 +16,9 @@ uint16_t AD_mean;	// Mean AD value
 
 #define DEBUG 1
 
+/* lcd_zahl converts a 8 bit number into a 3 digit char vector
+
+*/
 void lcd_zahl(uint8_t zahl,char* text)
 {
 	char ziff1;								// Hunderterstelle
@@ -34,6 +37,9 @@ void lcd_zahl(uint8_t zahl,char* text)
 	return;
 }
 
+/* lcd_zahl_16 converts a 16 bit number into a 5 digit char vector
+	
+*/
 void lcd_zahl_16(uint16_t num, char* written)
 {
 	uint16_t devisor;
@@ -51,6 +57,9 @@ void lcd_zahl_16(uint16_t num, char* written)
 	return;
 }
 
+/* lcd_text writes the contents of a char vector to the the LCD display
+
+*/
 void lcd_text(char* ztext)
 {
 	uint8_t j = 0;							// Z?hlvariable initialisieren
@@ -72,6 +81,9 @@ void lcd_text(char* ztext)
 	return;
 }
 
+/* lcd_cmd sends a command to the LCD display
+
+*/
 void lcd_cmd(unsigned char cmd)
 {
 	PORTD &= (ENABLE + RS232BITS);		// OHB=0 und RS=0 setzen
@@ -86,6 +98,10 @@ void lcd_cmd(unsigned char cmd)
 	return;
 }
 
+
+/* lcd_init() initializes the LCD display
+
+*/
 void lcd_init()
 {
 	/* Check "Displaytech Ltd LCD MODULE 162C SERIES PRODUCT SPECIFICATIONS"
@@ -95,7 +111,7 @@ void lcd_init()
 	DDRD |= 0xFC;	// Set outputs for pins 2-7 of D, which connect to the LCD board and are used for the communication
 	_delay_ms(16);	// Wait for LCD boot duration after receiving power (It's expected that this function will run at the start of main())
 	
-	// Shift LCD board into initialise mode by soft reseting three times:
+	// Shift LCD board into initialize mode by soft reseting three times:
 	PORTD &= ~0xF0; // Disable data bits
 	PORTD |= 0x08; // Enable
 	PORTD |= 0x30;	// Soft Reset
@@ -128,17 +144,18 @@ void lcd_init()
 	_delay_ms(2);
 }
 
+/* USART_init() initializes the USART interface
 
+*/
 void USART_init(void)
 {
-	// USART configuration:
 	UBRRL = 23; // Baud rate 9600Bd
 	UCSRA = 0;
-	UCSRB = (1<<RXEN)|(1<<TXEN); // Receive & send enable
+	UCSRB = (1<<RXEN)|(1<<TXEN); // Enable receive and send
 	UCSRC = (1<<URSEL)|(1<<UCSZ1)|(1<<UCSZ0); // 8 data bits
 }
 
-/* UART_send sends a 8 bit massage over UART
+/* USART_send sends a 8 bit massage over UART
 
 */
 void USART_send(uint8_t msg)
@@ -161,16 +178,24 @@ void USART_send_16(uint16_t msg)
 	UDR = msg>>8; // High 8 bits
 }
 
+/* Timer1_init configures the timer and PWM signal for motor control
+	The pulse width can be set anywhere in the code after initialization via OCR1A (16bit) which must be smaller than ICR1.
+*/
 void Timer1_init(void)
 {
 	DDRB |= (1<<DDB1);
+	
 	TCCR1A = (1<<COM1A1)|(0<<COM1A0); // Clear OC1A/OC1B on Compare Match, set OC1A/OC1B at BOTTOM, (non-inverting mode)
-	// Fast PWM with TOP value at OCR1A
-	TCCR1A = (1<<WGM11)|(0<<WGM10);
-	TCCR1B = (1<<WGM13)|(1<<WGM12);
-	TCCR1B = (1<<CS12)|(0<<CS11)|(0<<CS10);
-	ICR1H = 0x6F;
-	ICR1L = 0xFF; // Top Value
+	
+	// Operation Mode: Fast PWM with TOP value at OCR1A
+	TCCR1A |= (1<<WGM11)|(0<<WGM10);
+	TCCR1B  = (1<<WGM13)|(1<<WGM12);
+	
+	/* Set Frequency:
+		The Frequency of the PWM signal is 225 Hz. F_PWM = F_CPU/(N*(TOP+1))
+		Generally aim for low prescaler N and high TOP-value for better accuracy */
+	ICR1 = 0x07FF; // TOP-value 11 bit()
+	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10); // Prescaler N = 8
 }
 
 int main(void)
@@ -182,13 +207,12 @@ int main(void)
 	
 	char lcd_str[16];
 	
-	// Initialisation
+	// Initialization:
 	lcd_init();
 	USART_init();
 	Timer1_init();
 	
-	OCR1AH = 0x55;
-	OCR1AL = 0x55; // Compare Value
+	OCR1A = 0x07FF*0.53; // Compare Value
 	
 	// Init Timer 0 for measuring and PID Calculation:
 	TCCR0 = (1<<CS00)|(1<<CS02);	// clk_IO/1024 (From prescaler)
@@ -210,10 +234,6 @@ int main(void)
 		lcd_cmd(0xC0);
 		lcd_zahl_16(AD_value_5,lcd_str);
 		lcd_text(lcd_str);
-// 		lcd_cmd(0x84);
-// 		lcd_zahl(AD_mean,lcd_str);
-// 		lcd_text(lcd_str);
-// 		USART_send(AD_mean);
 		lcd_cmd(0x87);
 		lcd_zahl_16(AD_mean,lcd_str);
 		lcd_text(lcd_str);

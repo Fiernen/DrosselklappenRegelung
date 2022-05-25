@@ -161,17 +161,34 @@ void USART_send_16(uint16_t msg)
 	UDR = msg>>8; // High 8 bits
 }
 
+void Timer1_init(void)
+{
+	DDRB |= (1<<DDB1);
+	TCCR1A = (1<<COM1A1)|(0<<COM1A0); // Clear OC1A/OC1B on Compare Match, set OC1A/OC1B at BOTTOM, (non-inverting mode)
+	// Fast PWM with TOP value at OCR1A
+	TCCR1A = (1<<WGM11)|(0<<WGM10);
+	TCCR1B = (1<<WGM13)|(1<<WGM12);
+	TCCR1B = (1<<CS12)|(0<<CS11)|(0<<CS10);
+	ICR1H = 0x6F;
+	ICR1L = 0xFF; // Top Value
+}
+
 int main(void)
 {
 	#if DEBUG
-	DDRB = (1<<DDB0);
+	DDRB |= 1<<DDB0;
 	#endif
+	
 	
 	char lcd_str[16];
 	
 	// Initialisation
 	lcd_init();
 	USART_init();
+	Timer1_init();
+	
+	OCR1AH = 0x55;
+	OCR1AL = 0x55; // Compare Value
 	
 	// Init Timer 0 for measuring and PID Calculation:
 	TCCR0 = (1<<CS00)|(1<<CS02);	// clk_IO/1024 (From prescaler)
@@ -182,12 +199,8 @@ int main(void)
 	ADMUX |= 0<<ADLAR; // write right sided
 	ADCSRA |= 1<<ADEN; // Enable
 	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
-	
-	
-	
+		
 	sei();
-	
-	uint16_t kk = 0;
 	
 	while(1)
 	{

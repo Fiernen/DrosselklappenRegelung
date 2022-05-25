@@ -3,9 +3,9 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-uint8_t AD_value_2; 
-uint8_t AD_value_5;
-uint8_t AD_mean;	// Mean AD value
+uint16_t AD_value_2; 
+uint16_t AD_value_5;
+uint16_t AD_mean;	// Mean AD value
 
 #define	RS				0b00000100
 #define	ENABLE			0b00001000
@@ -31,6 +31,23 @@ void lcd_zahl(uint8_t zahl,char* text)
 	text[1] = ziff2 + 0x30;					// ASCII-Code f?r Zehner
 	text[2] = zahl + 0x30;					// ASCII-Code f?r Einer
 	text[3] = 0x00;							// Endekennung
+	return;
+}
+
+void lcd_zahl_16(uint16_t num, char* written)
+{
+	uint16_t devisor;
+	uint8_t digit;
+	uint8_t i = 0;
+	
+	for (devisor=10000; devisor != 0; devisor /= 10)
+	{
+		digit = num/devisor;
+		written[i] = digit + 0x30;
+		num -= digit*devisor;
+		i++;
+	}
+	written[i] = 0x00; // End marker
 	return;
 }
 
@@ -121,7 +138,7 @@ void USART_init(void)
 	UCSRC = (1<<URSEL)|(1<<UCSZ1)|(1<<UCSZ0); // 8 data bits
 }
 
-/* UART_send sends an massage over UART
+/* UART_send sends a 8 bit massage over UART
 
 */
 void USART_send(uint8_t msg)
@@ -132,7 +149,17 @@ void USART_send(uint8_t msg)
 
 }
 
+/* UART_send sends a 16 bit massage over UART
 
+*/
+void USART_send_16(uint16_t msg)
+{
+	while (!(UCSRA & (1<<UDRE))); // Check for empty data buffer
+	UDR = msg & 0xFF; // Low 8 bits
+	
+	while (!(UCSRA & (1<<UDRE)));
+	UDR = msg>>8; // High 8 bits
+}
 
 int main(void)
 {
@@ -152,35 +179,41 @@ int main(void)
 	
     // Init ADC:
 	ADMUX = (0<<REFS1) | (1<<REFS0); // Internal voltage reference
-	ADMUX |= (1<<ADLAR);			// write left sided
-	ADCSRA |= 1<<ADEN;				// Enable
-	ADCSRA |=  (1<<ADPS2) | (0<<ADPS1) | (0<<ADPS0); // Prescaler = 16
+	ADMUX |= 0<<ADLAR; // write right sided
+	ADCSRA |= 1<<ADEN; // Enable
+	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
 	
 	
 	
 	sei();
 	
+	uint16_t kk = 0;
+	
 	while(1)
 	{
 		lcd_cmd(0x80);
-		lcd_zahl(AD_value_2,lcd_str);
+		lcd_zahl_16(AD_value_2,lcd_str);
 		lcd_text(lcd_str);
 		lcd_cmd(0xC0);
-		lcd_zahl(AD_value_5,lcd_str);
+		lcd_zahl_16(AD_value_5,lcd_str);
 		lcd_text(lcd_str);
-		lcd_cmd(0x84);
-		lcd_zahl(AD_mean,lcd_str);
+// 		lcd_cmd(0x84);
+// 		lcd_zahl(AD_mean,lcd_str);
+// 		lcd_text(lcd_str);
+// 		USART_send(AD_mean);
+		lcd_cmd(0x87);
+		lcd_zahl_16(AD_mean,lcd_str);
 		lcd_text(lcd_str);
-		USART_send(AD_mean);
-			
+		USART_send_16(AD_mean);
+
 	}
 	
 }
 
-#define LOW_ADC2 42
-#define HIGH_ADC2 240
-#define LOW_ADC5 212
-#define HIGH_ADC5 12
+#define LOW_ADC2 172+1-74-2
+#define HIGH_ADC2 960
+#define LOW_ADC5 843+3+76+1
+#define HIGH_ADC5 053
 
 ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
 {
@@ -191,7 +224,7 @@ ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
 	
 	
 	#if DEBUG
-	PORTB |= 1<<0; // Timemeasure 
+	PORTB |= 1<<0; // Time measure 
 	#endif
 	
 	// ADC2 043 ... 240
@@ -200,7 +233,7 @@ ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	AD_value_2 = ADCH;
+	AD_value_2 = ADC;
 	AD_value_2 -= LOW_ADC2;
 	
 	// ADC5 211 ... 013/014
@@ -209,10 +242,11 @@ ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	AD_value_5 = ADCH;
+	AD_value_5 = ADC;
 	AD_value_5 = -AD_value_5 + LOW_ADC5;
 	
-	AD_mean = (AD_value_2 + AD_value_5 + 1)/2; // Smart rounding
+	// Mean:
+	AD_mean = (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
 	
 
 	

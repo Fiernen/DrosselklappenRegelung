@@ -318,18 +318,19 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	// P-term:
 	int16_t kP_speed; // Gain
 	int16_t MAX_speed_error = INT16_MAX/kP_speed;
-	int16_t MIN_speed_error = INT16_MIN/kP_speed;
+	int16_t MIN_speed_error = -INT16_MAX/kP_speed;
 	int16_t speed_P_term; // Result for P-term
 	// I-term:
 	int16_t TN_speed; // Integrator time constant
 	int16_t speed_error_integral = 0;
 	int16_t MAX_speed_error_integral = INT16_MAX/TN_speed;
-	int16_t MIN_speed_error_integral = INT16_MIN/TN_speed;
+	int16_t MIN_speed_error_integral = -INT16_MAX/TN_speed;
 	int32_t temp_integral;
+	int16_t speed_I_term;
 	// Result
 	int32_t temp_PWM_duty_cycle; // temp value to check for overflow
 	#define MAX_PWM_duty_cycle INT16_MAX
-	#define MIN_PWM_duty_cycle INT16_MIN
+	#define MIN_PWM_duty_cycle -INT16_MAX
 	int16_t PWM_duty_cycle;	
 	
 	// D-Term-speed;
@@ -368,7 +369,6 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 		speed_I_term = TN_speed * speed_error_integral;
 	}
 	
-	
 	// Control value sum, with limits/overflow protection:
 	temp_PWM_duty_cycle = speed_P_term + speed_error_integral;
 	if (temp_PWM_duty_cycle > MAX_PWM_duty_cycle)
@@ -381,7 +381,7 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	}
 	else
 	{
-		PWM_duty_cycle = speed_P_term + speed_error_integral;
+		PWM_duty_cycle = speed_P_term + speed_error_integral +;
 	}	
 	
 	// PWM scaling:

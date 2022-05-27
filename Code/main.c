@@ -5,7 +5,7 @@
 
 uint16_t AD_value_2; 
 uint16_t AD_value_5;
-uint16_t AD_mean;	// Mean AD value
+uint16_t position;	// Mean AD value
 
 #define	RS				0b00000100
 #define	ENABLE			0b00001000
@@ -171,6 +171,7 @@ void USART_send(uint8_t msg)
 */
 void USART_send_16(uint16_t msg)
 {
+	// Low must be send before high, otherwise are spikes in the resulting graph in the terminal app when the lower bite "overflows"
 	while (!(UCSRA & (1<<UDRE))); // Check for empty data buffer
 	UDR = msg & 0xFF; // Low 8 bits
 	
@@ -181,20 +182,20 @@ void USART_send_16(uint16_t msg)
 /* Timer1_init configures the timer and PWM signal for motor control
 	The pulse width can be set anywhere in the code after initialization via OCR1A (16bit) which must be smaller than ICR1.
 */
-void Timer1_init(void)
+void TimerPWM_init(void)
 {
-	DDRB |= (1<<DDB1);
+	DDRB |= (1<<DDB1); // OC1A = PortB1
 	
-	TCCR1A = (1<<COM1A1)|(0<<COM1A0); // Clear OC1A/OC1B on Compare Match, set OC1A/OC1B at BOTTOM, (non-inverting mode)
+	TCCR1A = (1<<COM1A1)|(0<<COM1A0); // Clear OC1A on Compare Match, set OC1A at BOTTOM, (non-inverting mode)
 	
-	// Operation Mode: Fast PWM with TOP value at OCR1A
+	// Operation Mode: 14 Fast PWM with compare value at OCR1A
 	TCCR1A |= (1<<WGM11)|(0<<WGM10);
 	TCCR1B  = (1<<WGM13)|(1<<WGM12);
 	
 	/* Set Frequency:
 		The Frequency of the PWM signal is 225 Hz. F_PWM = F_CPU/(N*(TOP+1))
 		Generally aim for low prescaler N and high TOP-value for better accuracy */
-	ICR1 = 0x07FF; // TOP-value 11 bit()
+	ICR1 = 0x07FF; // TOP-value 11 bit
 	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10); // Prescaler N = 8
 }
 
@@ -210,12 +211,12 @@ int main(void)
 	// Initialization:
 	lcd_init();
 	USART_init();
-	Timer1_init();
+	TimerPWM_init();
 	
-	OCR1A = 0x07FF*0.53; // Compare Value
+	OCR1A = 0x07FF*0.53; // Update PWM timer compare value
 	
 	// Init Timer 0 for measuring and PID Calculation:
-	TCCR0 = (1<<CS00)|(1<<CS02);	// clk_IO/1024 (From prescaler)
+	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms
 	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow	
 	
     // Init ADC:
@@ -235,9 +236,9 @@ int main(void)
 		lcd_zahl_16(AD_value_5,lcd_str);
 		lcd_text(lcd_str);
 		lcd_cmd(0x87);
-		lcd_zahl_16(AD_mean,lcd_str);
+		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
-		USART_send_16(AD_mean);
+		USART_send_16(position);
 
 	}
 	
@@ -248,19 +249,51 @@ int main(void)
 #define LOW_ADC5 843+3+76+1
 #define HIGH_ADC5 053
 
-ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
+
+
+ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 {
 	/* ISR(TIMER0_OVF_vect) is a interrupt which is triggered by a timer 0 overflow.
 		
 	
 	*/
-	
-	
 	#if DEBUG
 	PORTB |= 1<<0; // Time measure 
 	#endif
 	
-	// ADC2 043 ... 240
+	/* Vars for control loop: */
+	static uint16_t Ts = 44; // *1e-4
+
+	// P-position-controller
+	int16_t position_setpoint;
+	int16_t position_error;
+	int16_t kP_postion = 1; // Gain
+	int16_t speed;
+	int16_t prev_time_step_position = 0;
+
+
+	// PI-speed-controller
+	int16_t speed_setpoint;
+	int16_t speed_error;
+
+	
+	// P-term:
+	int16_t kP_speed; // Gain
+	int16_t MAX_speed_error = INT16_MAX/kP_speed;
+	int16_t MIN_speed_error = INT16_MIN/kP_speed;
+	int16_t speed_P_term; // Result for P-term
+	
+	
+	
+	int16_t TN_speed; // Integrator time constant
+	int16_t PWM_duty_cycle;
+	
+	int16_t speed_error_integral = 0;
+	#define MAX_speed_error_integral = INT16_MAX
+	#define MIN_speed_error_integral = INT16_MIN	
+	int32_t temp_integral;
+	
+	// ADC2
 	ADMUX &= ~0b1111;
 	ADMUX |= 0b0010; // PC2
 	// Measure
@@ -269,7 +302,7 @@ ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
 	AD_value_2 = ADC;
 	AD_value_2 -= LOW_ADC2;
 	
-	// ADC5 211 ... 013/014
+	// ADC5
 	ADMUX &= ~0b1111;
 	ADMUX |= 0b0101; // PC5
 	// Measure
@@ -278,11 +311,63 @@ ISR(TIMER0_OVF_vect) //Last runtime measure = 0.48 ms
 	AD_value_5 = ADC;
 	AD_value_5 = -AD_value_5 + LOW_ADC5;
 	
+	// Open-circuit detection of the potentiometers:
+	/* Compare AD values. When the Difference is to high --> Open-circuit
+			--> Warning. Shutdown? or switch to operation with just one potentiometer*/
+	
 	// Mean:
-	AD_mean = (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
+	position = (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
 	
-
+	// Motor control:
+	/* Cascading P-position-controller into PI-speed-controller and Filter
 	
+	Needed Components:
+		Filter		--> revolving vector
+		Derivative	--> slope from last sample point
+		
+	 */
+	
+	
+	speed = (position-prev_time_step_position)*10^4/Ts; // derivative
+	prev_time_step_position = position;
+	
+	
+	position_error = position_setpoint - position;
+	
+	speed_setpoint = kP_postion * position_error; // P-position-controller:
+	
+	speed_error = speed_setpoint - speed;
+	
+	// P-term:
+	if (speed_error > MAX_speed_error)
+	{
+		speed_error = MAX_speed_error;
+	} 
+	else if (speed_error < MIN_speed_error)
+	{
+		speed_error = MIN_speed_error;
+	}
+	speed_P_term = kP_speed * speed_error;
+	
+	// I-term:
+	temp_integral = speed_error_integral + speed_error;
+	if (temp_integral > MAX_speed_error_integral)
+	{
+		speed_error_integral = MAX_speed_error_integral;
+	} 
+	else if(temp_integral < MIN_speed_error_integral)
+	{
+		speed_error_integral = MIN_speed_error_integral;
+	}
+	else
+	{
+		speed_error_integral = speed_error_integral + speed_error;
+	}
+	
+// 	speed_error_integral = speed_error_integral + speed_error;
+// 	
+// 	 = kP_speed*speed_error + kP_speed * TN_speed * speed_error_integral;// PI-speed-controller
+// 	PWM_duty_cycle
 	
 	
 	

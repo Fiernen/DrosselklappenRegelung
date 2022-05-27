@@ -2,6 +2,7 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>
+#include <>
 
 uint16_t AD_value_2; 
 uint16_t AD_value_5;
@@ -261,37 +262,7 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	PORTB |= 1<<0; // Time measure 
 	#endif
 	
-	/* Vars for control loop: */
-	static uint16_t Ts = 44; // *1e-4
 
-	// P-position-controller
-	int16_t position_setpoint;
-	int16_t position_error;
-	int16_t kP_postion = 1; // Gain
-	int16_t speed;
-	int16_t prev_time_step_position = 0;
-
-
-	// PI-speed-controller
-	int16_t speed_setpoint;
-	int16_t speed_error;
-
-	
-	// P-term:
-	int16_t kP_speed; // Gain
-	int16_t MAX_speed_error = INT16_MAX/kP_speed;
-	int16_t MIN_speed_error = INT16_MIN/kP_speed;
-	int16_t speed_P_term; // Result for P-term
-	
-	
-	
-	int16_t TN_speed; // Integrator time constant
-	int16_t PWM_duty_cycle;
-	
-	int16_t speed_error_integral = 0;
-	#define MAX_speed_error_integral = INT16_MAX
-	#define MIN_speed_error_integral = INT16_MIN	
-	int32_t temp_integral;
 	
 	// ADC2
 	ADMUX &= ~0b1111;
@@ -327,18 +298,50 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 		
 	 */
 	
+	/* Vars for control loop: */
+
+	// P-position-controller:
+	int16_t position_setpoint;
+	int16_t position_error;
+	int16_t kP_postion = 1; // Gain
+	int16_t MAX_position_error = INT16_MAX/kP_postion;
+	int16_t MIN_position_error = INT16_MIN/kP_postion;
+	int16_t prev_time_step_position = 0;
 	
-	speed = (position-prev_time_step_position)*10^4/Ts; // derivative
-	prev_time_step_position = position;
+	// D-Term:
+	int16_t speed;
 	
-	
-	position_error = position_setpoint - position;
-	
-	speed_setpoint = kP_postion * position_error; // P-position-controller:
-	
-	speed_error = speed_setpoint - speed;
+	// PI-speed-controller:
+	int16_t speed_setpoint;
+	int16_t speed_error;
 	
 	// P-term:
+	int16_t kP_speed; // Gain
+	int16_t MAX_speed_error = INT16_MAX/kP_speed;
+	int16_t MIN_speed_error = INT16_MIN/kP_speed;
+	int16_t speed_P_term; // Result for P-term
+	// I-term:
+	int16_t TN_speed; // Integrator time constant
+	int16_t speed_error_integral = 0;
+	#define MAX_speed_error_integral INT16_MAX
+	#define MIN_speed_error_integral INT16_MIN
+	int32_t temp_integral;
+	// Result
+	int32_t temp_PWM_duty_cycle; // temp value to check for overflow
+	#define MAX_PWM_duty_cycle INT16_MAX
+	#define MIN_PWM_duty_cycle INT16_MIN
+	int16_t PWM_duty_cycle;	
+	
+	// D-Term-speed;
+	speed = (position-prev_time_step_position); // derivative
+	prev_time_step_position = position;
+
+	// P-term-position:
+	position_error = position_setpoint - position;
+	speed_setpoint = kP_postion * position_error;
+	
+	// P-term-speed, with overflow protection:
+	speed_error = speed_setpoint - speed;
 	if (speed_error > MAX_speed_error)
 	{
 		speed_error = MAX_speed_error;
@@ -349,7 +352,7 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	}
 	speed_P_term = kP_speed * speed_error;
 	
-	// I-term:
+	// I-term-speed, with limits/overflow protection:
 	temp_integral = speed_error_integral + speed_error;
 	if (temp_integral > MAX_speed_error_integral)
 	{
@@ -364,10 +367,24 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 		speed_error_integral = speed_error_integral + speed_error;
 	}
 	
-// 	speed_error_integral = speed_error_integral + speed_error;
-// 	
-// 	 = kP_speed*speed_error + kP_speed * TN_speed * speed_error_integral;// PI-speed-controller
-// 	PWM_duty_cycle
+	// Control value sum, with limits/overflow protection:
+	temp_PWM_duty_cycle = speed_P_term + speed_error_integral;
+	if (temp_PWM_duty_cycle > MAX_PWM_duty_cycle)
+	{
+		PWM_duty_cycle = MAX_PWM_duty_cycle;
+	}
+	else if(temp_PWM_duty_cycle < MIN_PWM_duty_cycle)
+	{
+		PWM_duty_cycle = MIN_PWM_duty_cycle;
+	}
+	else
+	{
+		PWM_duty_cycle = speed_P_term + speed_error_integral;
+	}	
+	
+	// PWM scaling:
+	
+	OCR1A = (PWM_duty_cycle - INT16_MIN)/UINT16_MAX*ICR1;
 	
 	
 	

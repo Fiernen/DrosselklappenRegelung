@@ -2,7 +2,6 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>
-#include <>
 
 uint16_t AD_value_2; 
 uint16_t AD_value_5;
@@ -200,6 +199,11 @@ void TimerPWM_init(void)
 	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10); // Prescaler N = 8
 }
 
+
+
+uint16_t regl = 0;
+uint16_t regl2 = 0;
+
 int main(void)
 {
 	#if DEBUG
@@ -214,7 +218,7 @@ int main(void)
 	USART_init();
 	TimerPWM_init();
 	
-	OCR1A = 0x07FF*0.53; // Update PWM timer compare value
+	OCR1A = 0x07FF*0.50; // Update PWM timer compare value
 	
 	// Init Timer 0 for measuring and PID Calculation:
 	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms
@@ -230,16 +234,20 @@ int main(void)
 	
 	while(1)
 	{
+// 		lcd_cmd(0x80);
+// 		lcd_zahl_16(AD_value_2,lcd_str);
+// 		lcd_text(lcd_str);
+// 		lcd_cmd(0xC0);
+// 		lcd_zahl_16(AD_value_5,lcd_str);
+// 		lcd_text(lcd_str);
 		lcd_cmd(0x80);
-		lcd_zahl_16(AD_value_2,lcd_str);
-		lcd_text(lcd_str);
-		lcd_cmd(0xC0);
-		lcd_zahl_16(AD_value_5,lcd_str);
-		lcd_text(lcd_str);
-		lcd_cmd(0x87);
 		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
 		USART_send_16(position);
+		lcd_cmd(0x87);
+		lcd_zahl_16(regl,lcd_str);
+		lcd_text(lcd_str);
+		USART_send_16(regl);
 
 	}
 	
@@ -249,6 +257,9 @@ int main(void)
 #define HIGH_ADC2 960
 #define LOW_ADC5 843+3+76+1
 #define HIGH_ADC5 053
+
+
+
 
 
 
@@ -288,7 +299,11 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	
 	// Mean:
 	position = (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
-	
+// 	
+// 	#define factor 0x07FF/
+// 	regl = position * 0x07FF;
+// 	regl2 = regl / UINT16_MAX;
+
 	// Motor control:
 	/* Cascading P-position-controller into PI-speed-controller and Filter
 	
@@ -298,14 +313,14 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 		
 	 */
 	
-	/* Vars for control loop: */
-
+	// Vars for control loop:
+	
 	// P-position-controller:
-	int16_t position_setpoint;
+	int16_t position_setpoint = 865;
 	int16_t position_error;
-	int16_t kP_postion = 1; // Gain
-	int16_t MAX_position_error = INT16_MAX/kP_postion;
-	int16_t MIN_position_error = INT16_MIN/kP_postion;
+	int16_t kP_position = 1; // Gain
+	int16_t MAX_position_error = INT16_MAX/kP_position;
+	int16_t MIN_position_error = -INT16_MAX/kP_position;
 	int16_t prev_time_step_position = 0;
 	
 	// D-Term:
@@ -316,12 +331,12 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	int16_t speed_error;
 	
 	// P-term:
-	int16_t kP_speed; // Gain
+	int16_t kP_speed = 1; // Gain
 	int16_t MAX_speed_error = INT16_MAX/kP_speed;
 	int16_t MIN_speed_error = -INT16_MAX/kP_speed;
 	int16_t speed_P_term; // Result for P-term
 	// I-term:
-	int16_t TN_speed; // Integrator time constant
+	int16_t TN_speed = 1; // Integrator time constant
 	int16_t speed_error_integral = 0;
 	int16_t MAX_speed_error_integral = INT16_MAX/TN_speed;
 	int16_t MIN_speed_error_integral = -INT16_MAX/TN_speed;
@@ -339,7 +354,15 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 
 	// P-term-position:
 	position_error = position_setpoint - position;
-	speed_setpoint = kP_postion * position_error;
+	if (position_error > MAX_position_error)
+	{
+		position_error = MAX_position_error;
+	}
+	else if (position_error < MIN_position_error)
+	{
+		position_error = MIN_position_error;
+	}
+	speed_setpoint = kP_position * position_error;
 	
 	// P-term-speed, with overflow protection:
 	speed_error = speed_setpoint - speed;
@@ -366,11 +389,11 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	else
 	{
 		speed_error_integral = speed_error_integral + speed_error;
-		speed_I_term = TN_speed * speed_error_integral;
+		
 	}
-	
+	speed_I_term = TN_speed * speed_error_integral;
 	// Control value sum, with limits/overflow protection:
-	temp_PWM_duty_cycle = speed_P_term + speed_error_integral;
+	temp_PWM_duty_cycle = speed_P_term + speed_I_term;
 	if (temp_PWM_duty_cycle > MAX_PWM_duty_cycle)
 	{
 		PWM_duty_cycle = MAX_PWM_duty_cycle;
@@ -381,12 +404,17 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	}
 	else
 	{
-		PWM_duty_cycle = speed_P_term + speed_error_integral +;
+		PWM_duty_cycle = speed_P_term + speed_I_term;
 	}	
 	
 	// PWM scaling:
-	
-	OCR1A = (PWM_duty_cycle - INT16_MIN)/UINT16_MAX*ICR1;
+	regl = PWM_duty_cycle;
+// 	if (regl > 0x07FF)
+// 	{
+// 		regl = 0x07FF;
+// 	}
+
+	OCR1A = PWM_duty_cycle - INT16_MIN;
 	
 	
 	

@@ -323,8 +323,8 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	// I-term:
 	int16_t TN_speed; // Integrator time constant
 	int16_t speed_error_integral = 0;
-	#define MAX_speed_error_integral INT16_MAX
-	#define MIN_speed_error_integral INT16_MIN
+	int16_t MAX_speed_error_integral = INT16_MAX/TN_speed;
+	int16_t MIN_speed_error_integral = INT16_MIN/TN_speed;
 	int32_t temp_integral;
 	// Result
 	int32_t temp_PWM_duty_cycle; // temp value to check for overflow
@@ -365,7 +365,9 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	else
 	{
 		speed_error_integral = speed_error_integral + speed_error;
+		speed_I_term = TN_speed * speed_error_integral;
 	}
+	
 	
 	// Control value sum, with limits/overflow protection:
 	temp_PWM_duty_cycle = speed_P_term + speed_error_integral;

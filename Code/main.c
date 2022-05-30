@@ -3,9 +3,46 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
+#define FILTER_ORDER 5
+uint16_t filter_container[FILTER_ORDER];
+
 uint16_t AD_value_2; 
 uint16_t AD_value_5;
 uint16_t position;	// Mean AD value
+
+int16_t speed;
+int16_t speed_setpoint;
+int16_t speed_P_term; // Result for P-term
+int16_t speed_I_term;
+int16_t prev_time_step_position = 0;
+// Vars for control loop:
+
+// P-position-controller:
+int16_t position_setpoint = 863;
+int16_t position_error;
+int16_t kP_position = 1; // Gain
+
+
+
+// D-Term:
+	
+// PI-speed-controller:
+
+int16_t speed_error;
+	
+// P-term:
+int16_t kP_speed = 1; // Gain
+
+// I-term:
+int16_t TN_speed = 5; // Integrator time constant
+int16_t speed_error_integral = 0;
+int32_t temp_integral;
+
+// Result
+int32_t temp_PWM_duty_cycle; // temp value to check for overflow
+int16_t PWM_duty_cycle;
+
+
 
 #define	RS				0b00000100
 #define	ENABLE			0b00001000
@@ -45,6 +82,41 @@ void lcd_zahl_16(uint16_t num, char* written)
 	uint16_t devisor;
 	uint8_t digit;
 	uint8_t i = 0;
+	
+	for (devisor=10000; devisor != 0; devisor /= 10)
+	{
+		digit = num/devisor;
+		written[i] = digit + 0x30;
+		num -= digit*devisor;
+		i++;
+	}
+	written[i] = 0x00; // End marker
+	return;
+}
+
+/* lcd_zahl_16 converts a 16 bit number into a 5 digit char vector
+	
+*/
+void lcd_zahl_s16(int16_t num, char* written)
+{
+	uint16_t devisor;
+	uint8_t digit;
+	uint8_t i = 0;
+	
+	if (num>>15)
+	{
+		written[i] = '-';
+		num = ~num+1;
+	}
+	else if (num == 0)
+	{
+		written[i] = ' ';
+	}
+	else
+	{
+		written[i] = '+';
+	}
+	i++;
 	
 	for (devisor=10000; devisor != 0; devisor /= 10)
 	{
@@ -201,9 +273,6 @@ void TimerPWM_init(void)
 
 
 
-uint16_t regl = 0;
-uint16_t regl2 = 0;
-
 int main(void)
 {
 	#if DEBUG
@@ -229,52 +298,50 @@ int main(void)
 	ADMUX |= 0<<ADLAR; // write right sided
 	ADCSRA |= 1<<ADEN; // Enable
 	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
-		
+	
+	
+// 	struct filter_param{
+// 		final uint8_t order 5
+// 		
+// 		};
+	
 	sei();
 	
 	while(1)
 	{
-// 		lcd_cmd(0x80);
-// 		lcd_zahl_16(AD_value_2,lcd_str);
-// 		lcd_text(lcd_str);
-// 		lcd_cmd(0xC0);
-// 		lcd_zahl_16(AD_value_5,lcd_str);
-// 		lcd_text(lcd_str);
-		lcd_cmd(0x80);
-		lcd_zahl_16(position,lcd_str);
+		lcd_cmd(0xC1);
+		lcd_zahl_16(OCR1A,lcd_str);
 		lcd_text(lcd_str);
 		USART_send_16(position);
-		lcd_cmd(0x87);
-		lcd_zahl_16(regl,lcd_str);
+		
+		lcd_cmd(0xC7);
+		lcd_zahl_s16(PWM_duty_cycle,lcd_str);
 		lcd_text(lcd_str);
-		USART_send_16(regl);
+
+		lcd_cmd(0x80);
+		lcd_zahl_s16(speed_P_term,lcd_str);
+		lcd_text(lcd_str);
+
+		lcd_cmd(0x87);
+		lcd_zahl_s16(speed_I_term,lcd_str);
+		lcd_text(lcd_str);
 
 	}
 	
 }
 
-#define LOW_ADC2 172+1-74-2
-#define HIGH_ADC2 960
-#define LOW_ADC5 843+3+76+1
-#define HIGH_ADC5 053
 
 
+/* measure() measueres the AD-values at C2 and C5 and means the values
 
-
-
-
-ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
+*/
+int16_t position_measure(void)
 {
-	/* ISR(TIMER0_OVF_vect) is a interrupt which is triggered by a timer 0 overflow.
-		
-	
-	*/
-	#if DEBUG
-	PORTB |= 1<<0; // Time measure 
-	#endif
-	
-
-	
+	// Minima and maxima for both 
+	#define LOW_ADC2 172+1-74-2
+	#define HIGH_ADC2 960
+	#define LOW_ADC5 843+3+76+1
+	#define HIGH_ADC5 053
 	// ADC2
 	ADMUX &= ~0b1111;
 	ADMUX |= 0b0010; // PC2
@@ -298,14 +365,58 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 			--> Warning. Shutdown? or switch to operation with just one potentiometer*/
 	
 	// Mean:
-	position = (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
-// 	
-// 	#define factor 0x07FF/
-// 	regl = position * 0x07FF;
-// 	regl2 = regl / UINT16_MAX;
+	return (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
+}
+
+
+struct filter_params {
+	#define filter_size 5
+	int16_t container[filter_size] = {0};
+	uint8_t increment = 0;
+	uint8_t last_increment = filter_size;
+	int16_t sum = 0;
+};
+
+// filter = 
+
+int16_t FIR_filter(int16_t new_value, struct filter_params *params)
+{
+	params->container[params->increment] = new_value; // Replace oldest field with new value
+	params->sum = params->sum - params->container[params->last_increment] + new_value; // Correct sum
+	
+	// Increment to next container field:
+	params->last_increment = params->increment;
+	params->increment++;
+	if (params->increment > filter_size)
+	{
+		params->increment = 0;
+	}
+	
+	return params->sum/filter_size; // Return mean value
+}
+
+int16_t motor_control(int16_t position, int)
+{
+	
+}
+
+ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
+{
+	/* ISR(TIMER0_OVF_vect) is a interrupt which is triggered by a timer 0 overflow.
+		
+	
+	*/
+	#if DEBUG
+	PORTB |= 1<<0; // Time measure 
+	#endif
+	
+
+	
+	position = position_measure();
+
 
 	// Motor control:
-	/* Cascading P-position-controller into PI-speed-controller and Filter
+	/* Cascading P-position-controller into PI-speed-controller
 	
 	Needed Components:
 		Filter		--> revolving vector
@@ -313,46 +424,21 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 		
 	 */
 	
-	// Vars for control loop:
-	
-	// P-position-controller:
-	int16_t position_setpoint = 865;
-	int16_t position_error;
-	int16_t kP_position = 1; // Gain
+	// Limits for overflow protection
 	int16_t MAX_position_error = INT16_MAX/kP_position;
 	int16_t MIN_position_error = -INT16_MAX/kP_position;
-	int16_t prev_time_step_position = 0;
-	
-	// D-Term:
-	int16_t speed;
-	
-	// PI-speed-controller:
-	int16_t speed_setpoint;
-	int16_t speed_error;
-	
-	// P-term:
-	int16_t kP_speed = 1; // Gain
 	int16_t MAX_speed_error = INT16_MAX/kP_speed;
 	int16_t MIN_speed_error = -INT16_MAX/kP_speed;
-	int16_t speed_P_term; // Result for P-term
-	// I-term:
-	int16_t TN_speed = 1; // Integrator time constant
-	int16_t speed_error_integral = 0;
-	int16_t MAX_speed_error_integral = INT16_MAX/TN_speed;
-	int16_t MIN_speed_error_integral = -INT16_MAX/TN_speed;
-	int32_t temp_integral;
-	int16_t speed_I_term;
-	// Result
-	int32_t temp_PWM_duty_cycle; // temp value to check for overflow
+	int16_t MAX_speed_error_integral = 0x6FFF/5;
+	int16_t MIN_speed_error_integral = -0x6FFF/5;
 	#define MAX_PWM_duty_cycle INT16_MAX
-	#define MIN_PWM_duty_cycle -INT16_MAX
-	int16_t PWM_duty_cycle;	
+	#define MIN_PWM_duty_cycle -INT16_MAX // must be symetrical for scaling
 	
 	// D-Term-speed;
 	speed = (position-prev_time_step_position); // derivative
 	prev_time_step_position = position;
 
-	// P-term-position:
+	// P-term-position, with overflow protection:
 	position_error = position_setpoint - position;
 	if (position_error > MAX_position_error)
 	{
@@ -377,7 +463,7 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	speed_P_term = kP_speed * speed_error;
 	
 	// I-term-speed, with limits/overflow protection:
-	temp_integral = speed_error_integral + speed_error;
+	temp_integral = speed_error_integral + speed_P_term;
 	if (temp_integral > MAX_speed_error_integral)
 	{
 		speed_error_integral = MAX_speed_error_integral;
@@ -391,7 +477,8 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 		speed_error_integral = speed_error_integral + speed_error;
 		
 	}
-	speed_I_term = TN_speed * speed_error_integral;
+	speed_I_term = speed_error_integral/TN_speed;
+	
 	// Control value sum, with limits/overflow protection:
 	temp_PWM_duty_cycle = speed_P_term + speed_I_term;
 	if (temp_PWM_duty_cycle > MAX_PWM_duty_cycle)
@@ -408,13 +495,8 @@ ISR(TIMER0_OVF_vect) // Last runtime measure = 0.483 us
 	}	
 	
 	// PWM scaling:
-	regl = PWM_duty_cycle;
-// 	if (regl > 0x07FF)
-// 	{
-// 		regl = 0x07FF;
-// 	}
-
-	OCR1A = PWM_duty_cycle - INT16_MIN;
+	PWM_duty_cycle /= MAX_PWM_duty_cycle/0x7FF;
+	OCR1A = 0x7FF/2 + PWM_duty_cycle;
 	
 	
 	

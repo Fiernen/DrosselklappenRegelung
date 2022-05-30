@@ -133,7 +133,16 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="lcd_functions.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="project_header.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="USART_functions.c">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>

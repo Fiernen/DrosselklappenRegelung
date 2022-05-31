@@ -7,7 +7,8 @@
 #define DEBUG 1
 #define MEASURE_IMPULSE_RESP 0
 #define PULSE_WIDTH_SAMPLES 2
-
+#define MANUAL_CONTROL 0
+#define FILTER_SIZE 5
 
 
 #define	F_CPU 3686400
@@ -19,6 +20,7 @@
 #include <util/delay.h>
 
 
+
 struct controller_params {
 	int16_t kP_position; // Gain
 	int16_t kP_speed; // Gain
@@ -27,8 +29,7 @@ struct controller_params {
 };
 
 struct filter_params {
-	#define filter_size 4
-	int16_t stack[filter_size];
+	int16_t stack[];
 	uint8_t increment;
 	uint8_t last_increment;
 	int16_t sum;

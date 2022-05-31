@@ -45,6 +45,8 @@ void TimerPWM_init(void)
 		Generally aim for low prescaler N and high TOP-value for better accuracy */
 	ICR1 = 0x07FF; // TOP-value 11 bit
 	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10); // Prescaler N = 8
+	
+	OCR1A = ICR1/2; // Set default duty cycle to 50%
 }
 
 /* measure() measueres the AD-values at C2 and C5 and means the values
@@ -83,6 +85,7 @@ int16_t position_measure(void)
 	// Mean:
 	return (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
 }
+
 
 
 

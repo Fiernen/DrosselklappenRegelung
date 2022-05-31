@@ -133,6 +133,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="controller_functions.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="lcd_functions.c">
       <SubType>compile</SubType>
     </Compile>

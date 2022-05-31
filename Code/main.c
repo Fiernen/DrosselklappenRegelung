@@ -1,17 +1,43 @@
 #include "project_header.h"
-
-
-int16_t kP_position = 1; // Gain
-int16_t kP_speed = 1; // Gain
-int16_t TN_speed = 5; // Integrator time constant
-uint16_t position;	// Mean AD value
-int16_t position_setpoint = 863;
-
-
-int16_t duty_cycle;
-
 #define DEBUG 1
 
+
+struct Controller_params {
+	int16_t kP_position; // Gain
+	int16_t kP_speed; // Gain
+	int16_t TN_speed; // Integrator time constant
+	int16_t position_setpoint;
+};
+
+struct filter_params {
+	#define filter_size 4
+	int16_t stack[filter_size];
+	uint8_t increment;
+	uint8_t last_increment;
+	int16_t sum;
+};
+
+	
+/* TimerController_init() initialises the Timer/Counter 1 for controller interrupt
+	Timer 0 for measuring and controller calculation:
+*/
+void TimerController_init()
+{
+	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms / sample freq 225 Hz
+	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow		
+}
+
+/* ADConverter_init() does the setup for the AD-Converter
+
+*/
+void ADConverter_init()
+{
+	ADMUX = (0<<REFS1) | (1<<REFS0); // Internal voltage reference
+	ADMUX |= 0<<ADLAR; // write right sided
+	ADCSRA |= 1<<ADEN; // Enable
+	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
+	
+}
 
 /* Timer1_init configures the timer and PWM signal for motor control
 	The pulse width can be set anywhere in the code after initialization via OCR1A (16bit) which must be smaller than ICR1.
@@ -32,8 +58,6 @@ void TimerPWM_init(void)
 	ICR1 = 0x07FF; // TOP-value 11 bit
 	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10); // Prescaler N = 8
 }
-
-
 
 /* measure() measueres the AD-values at C2 and C5 and means the values
 
@@ -74,20 +98,14 @@ int16_t position_measure(void)
 
 
 
-struct filter_params {
-	#define filter_size 5
-	int16_t container[filter_size];
-	uint8_t increment;
-	uint8_t last_increment;
-	int16_t sum;
-};
 
-struct filter_params filter;
-
+/* FIR_filter(new_value, *params) implements a FIR-filter
+	a function call replaces the oldest value in the stack and calculates the new mean.
+*/
 int16_t FIR_filter(int16_t new_value, struct filter_params *params)
 {
-	params->container[params->increment] = new_value; // Replace oldest field with new value
-	params->sum = params->sum - params->container[params->last_increment] + new_value; // Correct sum
+	params->stack[params->increment] = new_value; // Replace oldest field with new value
+	params->sum = params->sum - params->stack[params->last_increment] + new_value; // Correct sum
 	
 	// Increment to next container field:
 	params->last_increment = params->increment;
@@ -100,10 +118,6 @@ int16_t FIR_filter(int16_t new_value, struct filter_params *params)
 	return params->sum/filter_size; // Return mean value
 }
 
-
-
-int16_t prev_time_step_position = 0;
-int16_t speed_error_integral = 0;
 
 int16_t check_int16_overunderflow(int32_t var)
 {
@@ -118,31 +132,34 @@ int16_t check_int16_overunderflow(int32_t var)
 	return var;
 }
 
+
+
 /* Motor_controller() implements a cascading P-position-controller into PI-speed-controller
-			
+
 */
-int16_t Motor_controller()
+int16_t Motor_controller(uint16_t position, struct Controller_params *params)
 {
 
 	
 	// Limits for overflow protection
-	int16_t MAX_position_error = INT16_MAX/kP_position;
-	int16_t MIN_position_error = -INT16_MAX/kP_position;
-	int16_t MAX_speed_error = INT16_MAX/kP_speed;
-	int16_t MIN_speed_error = -INT16_MAX/kP_speed;
+	int16_t MAX_position_error = INT16_MAX/params->kP_position;
+	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
+	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
+	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
 	int16_t MAX_speed_error_integral = 0x6FFF/5;
 	int16_t MIN_speed_error_integral = -0x6FFF/5;
 	#define MAX_PWM_duty_cycle INT16_MAX
-	#define MIN_PWM_duty_cycle -INT16_MAX // must be symetrical for scaling
+	#define MIN_PWM_duty_cycle -INT16_MAX // must be symmetrical for scaling
 	
-
+	static int16_t prev_time_step_position = 0;
+	static int16_t speed_error_integral = 0; 
 	
 	// D-Term-speed;
 	int16_t speed = (position-prev_time_step_position); // derivative
 	prev_time_step_position = position;
 
 	// P-term-position, with overflow protection:
-	int32_t position_error = position_setpoint - position;
+	int32_t position_error = params->position_setpoint - position;
 	if (position_error > MAX_position_error)
 	{
 		position_error = MAX_position_error;
@@ -151,7 +168,7 @@ int16_t Motor_controller()
 	{
 		position_error = MIN_position_error;
 	}
-	int16_t speed_setpoint = kP_position * position_error;
+	int16_t speed_setpoint = params->kP_position * position_error;
 	
 	// P-term-speed, with overflow protection:
 	int32_t speed_error = speed_setpoint - speed;
@@ -163,7 +180,7 @@ int16_t Motor_controller()
 	{
 		speed_error = MIN_speed_error;
 	}
-	int16_t speed_P_term = kP_speed * speed_error;
+	int16_t speed_P_term = params->kP_speed * speed_error;
 	
 	// I-term-speed, with limits/overflow protection:
 	int32_t temp_integral = speed_error_integral + speed_P_term;
@@ -180,7 +197,7 @@ int16_t Motor_controller()
 		speed_error_integral = speed_error_integral + speed_P_term;
 		
 	}
-	int16_t speed_I_term = speed_error_integral/TN_speed;
+	int16_t speed_I_term = speed_error_integral/params->TN_speed;
 	
 	// Control value sum, with limits/overflow protection:
 	int16_t duty_cycle;
@@ -200,42 +217,35 @@ int16_t Motor_controller()
 	
 	// PWM scaling:
 	duty_cycle /= MAX_PWM_duty_cycle/0x7FF;
+	int32_t dc = speed + speed_error_integral + duty_cycle;
 	return duty_cycle;
 }
 
+struct filter_params filter;
+struct Controller_params Motor_ctrl_params = {.kP_position = 1, .kP_speed=1,.TN_speed=64,.position_setpoint=200};
 
 
-/* TimerController_init() initialises the Timer/Counter 1 for controller interrupt
-	Timer 0 for measuring and PID Calculation:
-*/
-void TimerController_init()
+uint16_t position;
+int16_t dduty_cycle;
+
+int TEST_Motor_controller()
 {
-	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms / sample freq 225 Hz
-	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow		
+	for (uint16_t ii=0; ii<0xFFF; ii++)
+	{
+		position = ii;
+		Motor_controller( position,&Motor_ctrl_params);
+	}
+	return 0;
 }
 
-/* ADConverter_init() does the setup for the AD-Converter
-
-*/
-void ADConverter_init()
-{
-	ADMUX = (0<<REFS1) | (1<<REFS0); // Internal voltage reference
-	ADMUX |= 0<<ADLAR; // write right sided
-	ADCSRA |= 1<<ADEN; // Enable
-	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
-	
-}
-	int32_t temp;
-	int16_t res;
-	int32_t res2;
-	int32_t min = INT16_MIN;
-		
 int main(void)
 {
 	#if DEBUG
 	DDRB |= 1<<DDB0;
 	#endif
-		
+	
+	TEST_Motor_controller();
+	
 	char lcd_str[16];
 
 	// Initialization:
@@ -246,18 +256,24 @@ int main(void)
 	TimerController_init();
 	ADConverter_init();
 	sei();
-
+	
+	
+// 	// Set default controller values:
+// 	Motor_ctrl_params.kP_position = 1;
+// 	Motor_ctrl_params.kP_speed = 5;
+// 	Motor_ctrl_params->TN_speed = 3;
+// 	Motor_ctrl_params->position_setpoint = 600;
 	
 	// Main Loop:
 	while(1)
 	{
 		// Write to LCD-display:
 		lcd_cmd(0xC1);
-		lcd_zahl_16(OCR1A,lcd_str);
+		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC7);
-		lcd_zahl_s16(duty_cycle,lcd_str);
+		lcd_zahl_s16(dduty_cycle,lcd_str);
 		lcd_text(lcd_str);
 
 // 		lcd_cmd(0x80);
@@ -271,21 +287,6 @@ int main(void)
 		// Send over USART:
 // 		USART_send_16(position);
 
-// Test check_int16_overunderflow()
-// 		temp = (int32_t) INT16_MAX + 1;
-// 		res = check_int16_overunderflow(temp);
-// 		res2 = res;
-// 		_delay_ms(2);
-// 		temp = INT16_MIN - 1;
-// 		res = check_int16_overunderflow(temp);
-// 		_delay_ms(1);
-// 		temp = 0+1;
-// 		res = check_int16_overunderflow(temp);
-// 		_delay_ms(1);
-// 		temp = 0-1;
-		
-		
-		
 		// Catch new controller parameters:
 
 	}
@@ -308,11 +309,11 @@ ISR(TIMER0_OVF_vect)
 	
 	position = position_measure();
 	
-	position = FIR_filter(position, &filter);
+// 	position = FIR_filter(position, &filter);
 
-	duty_cycle = Motor_controller();
+	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
 	
-	OCR1A = ICR1/2 + duty_cycle;
+	OCR1A = ICR1/2 + dduty_cycle;
 	
 	
 	

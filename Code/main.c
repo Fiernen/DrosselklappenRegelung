@@ -23,12 +23,16 @@ struct controller_params Motor_ctrl_params = {.kP_position = 1, .kP_speed=1,.TN_
 uint16_t position;
 int16_t dduty_cycle;
 
+
+
 void TEST_Motor_controller(struct controller_params *params)
 {
+	uint8_t posi;
+	
 	for (uint16_t ii=0; ii<0xFFF; ii++)
 	{
-		position = ii;
-		Motor_controller(position, params);
+		posi = ii;
+		Motor_controller(posi, params);
 	}
 }
 
@@ -36,10 +40,12 @@ void TEST_Motor_controller(struct controller_params *params)
 
 void TEST_FIR_filter(struct filter_params *params)
 {
+	uint8_t posi;
+	
 	for (uint16_t ii=0; ii<0xFFF; ii++)
 	{
-		position = ii;
-		FIR_filter(position, params);
+		posi = ii;
+		FIR_filter(posi, params);
 	}
 }
 
@@ -48,6 +54,7 @@ void TEST_FIR_filter(struct filter_params *params)
 void measure_impulse_response()
 {
 	static uint8_t sample_counter = 0;
+	uint16_t posi;
 	
 	if (sample_counter <= PULSE_WIDTH_SAMPLES)
 	{
@@ -55,11 +62,13 @@ void measure_impulse_response()
 	}
 	else
 	{
-		position = position_measure();
-		USART_send_16(position);
+		posi = position_measure();
+		USART_send_16(posi);
 	}
 	sample_counter++;
 }
+
+
 
 int main(void)
 {

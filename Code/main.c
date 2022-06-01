@@ -160,7 +160,7 @@ ISR(TIMER0_OVF_vect)
 	position = position_measure();
 // 	position = FIR_filter(position, &filter);
 	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
-	OCR1A = ICR1/2 + dduty_cycle;
+	OCR1A = dduty_cycle;
 	#endif
 	
 	#if DEBUG

@@ -176,16 +176,17 @@ int16_t Motor_controller(uint16_t position, struct controller_params *params)
 	int16_t speed_P_term = params->kP_speed * speed_error;
 	
 	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_int16(speed_error_integral + speed_P_term, MIN_speed_error_integral, MAX_speed_error_integral);
+	speed_error_integral = limit_int16(speed_error_integral + speed_P_term, MIN_speed_error_integral, MAX_speed_error_integral); //multiplikation mit kp fehlt bei speed error integral ?
 	int16_t speed_I_term = speed_error_integral/params->TN_speed;
 	
 	// Controller output P+I, with limits/overflow protection:
 	int16_t duty_cycle = limit_int16(speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
 
 	// Controller output scaling:
-	duty_cycle /= MAX_PWM_duty_cycle/ICR1;
-	int32_t dc = speed + speed_error_integral + duty_cycle;
-	return duty_cycle;
+	//duty_cycle /= MAX_PWM_duty_cycle/ICR1;		// war noch die falsche skalierung
+	int32_t duty_cycle_scaled = ((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX // int32 because the biggest number is 134148098)
+	int32_t dc = speed + speed_error_integral + duty_cycle;  //??
+	return duty_cycle_scaled;
 }
 
 

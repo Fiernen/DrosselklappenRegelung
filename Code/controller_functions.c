@@ -44,7 +44,7 @@ void TimerPWM_init(void)
 		The Frequency of the PWM signal is 225 Hz. F_PWM = F_CPU/(N*(TOP+1))
 		Generally aim for low prescaler N and high TOP-value for better accuracy */
 	ICR1 = 0x07FF; // TOP-value 11 bit
-	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10); // Prescaler N = 8
+	TCCR1B |= (0<<CS12)|(0<<CS11)|(1<<CS10); // Prescaler N = 8
 	
 	OCR1A = ICR1/2; // Set default duty cycle to 50%
 }
@@ -101,12 +101,12 @@ int16_t FIR_filter(int16_t new_value, struct filter_params *params)
 	// Increment to next container field:
 	params->last_increment = params->increment;
 	params->increment++;
-	if (params->increment > filter_size)
+	if (params->increment > FILTER_SIZE)
 	{
 		params->increment = 0;
 	}
 	
-	return params->sum/filter_size; // Return mean value
+	return params->sum/FILTER_SIZE; // Return mean value
 }
 
 /* limit_int16(var, MAX, MIN) Limits the argument var between INT16_MIN and INT16_MAX 
@@ -143,49 +143,71 @@ int16_t limit_int16(int32_t var, int16_t MIN, int16_t MAX)
 
 
 
+/* limit_integral(var, MAX, MIN) Limits the argument var between MIN and MAX
+	This function does not register overflows.
+*/
+int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
+{
+	if (var > MAX)
+	{
+		return MAX;
+	}
+	else if (var < MIN)
+	{
+		return MIN;
+	}
+	return var;
+}
+
+
 /* Motor_controller() implements a cascading P-position-controller into PI-speed-controller
 
 */
 int16_t Motor_controller(uint16_t position, struct controller_params *params)
 {
-/*?????????*/
 
-	// Limits for overflow protection
+	int16_t speed;
+	int16_t position_error;
+	int16_t speed_setpoint;
+	int16_t speed_error;
+	int16_t speed_P_term;
+	int16_t speed_I_term;
+	int16_t duty_cycle;
+	int32_t duty_cycle_scaled;
+	
 	int16_t MAX_position_error = INT16_MAX/params->kP_position;
 	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
 	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
 	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
-	int16_t MAX_speed_error_integral = 0x6FFF/5;
-	int16_t MIN_speed_error_integral = -0x6FFF/5;
+// 	int32_t MAX_speed_error_integral = INT16_MAX/(params->TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
+	int32_t MIN_speed_error_integral = INT16_MIN/(params->TN_speed*10);
 	#define MAX_PWM_duty_cycle INT16_MAX
-	#define MIN_PWM_duty_cycle -INT16_MAX // must be symmetrical for scaling
+	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
 	
 	static int16_t prev_sample_position = 0;
-	static int16_t speed_error_integral = 0; 
-	
+	static int32_t speed_error_integral = 0;
+
 	// D-Term-speed;
-	int16_t speed = (position-prev_sample_position); // derivative
+	speed = (position-prev_sample_position); // derivative
 	prev_sample_position = position;
 
 	// P-term-position, with overflow protection:
-	int16_t position_error = limit_int16(params->position_setpoint - position, MIN_position_error, MAX_position_error);
-	int16_t speed_setpoint = params->kP_position * position_error;
+	position_error = limit_int16((int32_t) params->position_setpoint - position, MIN_position_error, MAX_position_error);
+	speed_setpoint = params->kP_position * position_error;
 	
 	// P-term-speed, with overflow protection:
-	int16_t speed_error = limit_int16(speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
-	int16_t speed_P_term = params->kP_speed * speed_error;
+	speed_error = limit_int16((int32_t) speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
+	speed_P_term = params->kP_speed * speed_error;
 	
 	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_int16(speed_error_integral + speed_P_term, MIN_speed_error_integral, MAX_speed_error_integral); //multiplikation mit kp fehlt bei speed error integral ?
-	int16_t speed_I_term = speed_error_integral/params->TN_speed;
+	speed_error_integral = limit_integral(speed_error_integral + speed_P_term, MIN_speed_error_integral, -MIN_speed_error_integral-1);
+	speed_I_term = speed_error_integral*params->TN_speed/10;
 	
 	// Controller output P+I, with limits/overflow protection:
-	int16_t duty_cycle = limit_int16(speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
 
 	// Controller output scaling:
-	//duty_cycle /= MAX_PWM_duty_cycle/ICR1;		// war noch die falsche skalierung
-	int32_t duty_cycle_scaled = ((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX // int32 because the biggest number is 134148098)
-	int32_t dc = speed + speed_error_integral + duty_cycle;  //??
+	duty_cycle_scaled = ((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX; // int32 because the biggest number is 134148098)
 	return duty_cycle_scaled;
 }
 

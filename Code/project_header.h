@@ -5,6 +5,7 @@
 
 
 #define DEBUG 1
+#define TEST 0
 #define MEASURE_IMPULSE_RESP 0
 #define PULSE_WIDTH_SAMPLES 2
 #define MANUAL_CONTROL 0
@@ -29,7 +30,7 @@ struct controller_params {
 };
 
 struct filter_params {
-	int16_t stack[];
+	int16_t stack[FILTER_SIZE];
 	uint8_t increment;
 	uint8_t last_increment;
 	int16_t sum;

@@ -16,22 +16,35 @@ Features:
 #include "USART_functions.h"
 #include "controller_functions.h"
 
-struct filter_params filter = {.increment=0, .last_increment=FILTER_SIZE, .stack[FILTER_SIZE] = {0}, .sum=0};
-struct controller_params Motor_ctrl_params = {.kP_position=1, .kP_speed=1, .TN_speed=64, .position_setpoint=200};
+// struct filter_params filter = {.increment=0, .last_increment=FILTER_SIZE, .stack = {0}, .sum=0};
+struct controller_params Motor_ctrl_params = {.kP_position=1, .kP_speed=1, .TN_speed=10, .position_setpoint=800};
+struct controller_params *params = &Motor_ctrl_params;
 
 uint16_t position;
 int16_t dduty_cycle;
 
+	
+	int16_t speed;
+	int16_t position_error;
+	int16_t speed_setpoint;
+	int16_t speed_error;
+	int16_t speed_P_term;
+	int16_t speed_I_term;
+	int32_t duty_cycle;
+	uint16_t duty_cycle_scaled;
+	
 
 
 void TEST_Motor_controller(struct controller_params *params)
 {
 	uint8_t posi;
+	uint16_t dc;
 	
 	for (uint16_t ii=0; ii<0xFFF; ii++)
 	{
 		posi = ii;
-		Motor_controller(posi, params);
+		dc = Motor_controller(posi, params);
+		posi = ii + ii;
 	}
 }
 
@@ -77,9 +90,9 @@ void measure_impulse_response()
 */
 void manual_control()
 {	
-	// ADC?
+	// ADC0
 	ADMUX &= ~0b1111;
-	ADMUX |= 0b0010; // PC?
+	ADMUX |= 0b0000; // PC0
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
@@ -96,8 +109,10 @@ int main(void)
 	DDRB |= 1<<DDB0;
 	#endif
 	
+	#if TEST
 	TEST_Motor_controller(&Motor_ctrl_params);
-	TEST_FIR_filter(&filter);
+// 	TEST_FIR_filter(&filter);
+	#endif
 	
 	char lcd_str[16];
 
@@ -115,21 +130,21 @@ int main(void)
 	while(1)
 	{
 		// Write to LCD-display:
-		lcd_cmd(0xC1);
+		lcd_cmd(0x81);
 		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
 		
-		lcd_cmd(0xC7);
-		lcd_zahl_s16(dduty_cycle,lcd_str);
+		lcd_cmd(0x87);
+		lcd_zahl_s16(speed_P_term,lcd_str);
 		lcd_text(lcd_str);
 
-// 		lcd_cmd(0x80);
-// 		lcd_zahl_s16(speed_P_term,lcd_str);
-// 		lcd_text(lcd_str);
-// 
-// 		lcd_cmd(0x87);
-// 		lcd_zahl_s16(speed_I_term,lcd_str);
-// 		lcd_text(lcd_str);
+		lcd_cmd(0xC0);
+		lcd_zahl_16(duty_cycle_scaled,lcd_str);
+		lcd_text(lcd_str);
+
+		lcd_cmd(0xC7);
+		lcd_zahl_s16(speed_I_term,lcd_str);
+		lcd_text(lcd_str);
 
 		// Send over USART:
 // 		USART_send_16(position);
@@ -155,12 +170,54 @@ ISR(TIMER0_OVF_vect)
 	#if MEASURE_IMPULSE_RESP // Compile as impulse response measure (disabled control-loop)
 	measure_impulse_response();
 	#elif MANUAL_CONTROL // Compile manual control (disabled control-loop)
-	manual_control();
+	while(1)
+	{
+		manual_control();
+	}
 	#else // Compile normal operation control-loop
 	position = position_measure();
 // 	position = FIR_filter(position, &filter);
-	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
-	OCR1A = dduty_cycle;
+// 	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
+	
+	// Limits for overflow protection
+	int16_t MAX_position_error = INT16_MAX/params->kP_position;
+	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
+	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
+	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
+	// 	int32_t MAX_speed_error_integral = INT16_MAX/(params->TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
+	int32_t MIN_speed_error_integral = (int32_t) INT16_MIN/params->TN_speed*10;
+	#define MAX_PWM_duty_cycle INT16_MAX
+	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
+	
+	static int16_t prev_sample_position = 0;
+	static int32_t speed_error_integral = 0;
+
+	// D-Term-speed;
+	speed = (position-prev_sample_position); // derivative
+	prev_sample_position = position;
+
+	// P-term-position, with overflow protection:
+	position_error = limit_int16((int32_t) params->position_setpoint - position, MIN_position_error, MAX_position_error);
+	speed_setpoint = params->kP_position * position_error;
+	
+	// P-term-speed, with overflow protection:
+	speed_error = limit_int16((int32_t) speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
+	speed_P_term = params->kP_speed * speed_error;
+	
+	// I-term-speed, with limits/overflow protection:
+	speed_error_integral = limit_integral(speed_error_integral + speed_P_term, MIN_speed_error_integral, -MIN_speed_error_integral-1);
+	speed_I_term = speed_error_integral*params->TN_speed/10;
+	
+	// Controller output P+I, with limits/overflow protection:
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
+	duty_cycle = (duty_cycle + 32767);
+	duty_cycle = duty_cycle*ICR1;
+	duty_cycle = duty_cycle/UINT16_MAX;
+	// Controller output scaling:
+	duty_cycle_scaled = (uint16_t) duty_cycle;
+// 	duty_cycle_scaled = (uint16_t)((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX; // int32 because the biggest number is 134148098)
+	
+	OCR1A = duty_cycle_scaled;
 	#endif
 	
 	#if DEBUG

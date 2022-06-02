@@ -10,6 +10,7 @@ int16_t position_measure(void);
 int16_t FIR_filter(int16_t new_value, struct filter_params *params);
 int16_t check_int16_overunderflow(int32_t var);
 int16_t limit_int16(int32_t var, int16_t MIN, int16_t MAX);
+int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX);
 int16_t Motor_controller(uint16_t position, struct controller_params *params);
 
 #endif /* CONTROLLER_FUNCTIONS_H_ */

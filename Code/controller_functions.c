@@ -15,6 +15,8 @@ void TimerController_init()
 	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow		
 }
 
+
+
 /* ADConverter_init() does the setup for the AD-Converter
 
 */
@@ -26,6 +28,8 @@ void ADConverter_init()
 	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
 	
 }
+
+
 
 /* Timer1_init configures the timer and PWM signal for motor control
 	The pulse width can be set anywhere in the code after initialization via OCR1A (16bit) which must be smaller than ICR1.
@@ -48,6 +52,8 @@ void TimerPWM_init(void)
 	
 	OCR1A = ICR1/2; // Set default duty cycle to 50%
 }
+
+
 
 /* measure() measueres the AD-values at C2 and C5 and means the values
 
@@ -88,8 +94,6 @@ int16_t position_measure(void)
 
 
 
-
-
 /* FIR_filter(new_value, *params) implements a FIR-filter
 	a function call replaces the oldest value in the stack and calculates the new mean.
 */
@@ -125,6 +129,8 @@ int16_t check_int16_overunderflow(int32_t var)
 	return var;
 }
 
+
+
 /* limit_int16(var, MAX, MIN) Limits the argument var between MIN and MAX
 
 */
@@ -158,6 +164,7 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 	}
 	return var;
 }
+
 
 
 /* Motor_controller() implements a cascading P-position-controller into PI-speed-controller

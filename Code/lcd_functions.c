@@ -1,11 +1,15 @@
 #include "project_header.h"
 
+
+
 #define	RS				0b00000100
 #define	ENABLE			0b00001000
 #define OHB				0b11110000
 #define RS232BITS		0b00000011
 #define LCD_RESET		0b00110000
 #define LCD_INTERFACE	0b00100000
+
+
 
 /* lcd_zahl converts a 8 bit number into a 3 digit char vector
 
@@ -28,6 +32,8 @@ void lcd_zahl(uint8_t zahl,char* text)
 	return;
 }
 
+
+
 /* lcd_zahl_16 converts a 16 bit number into a 5 digit char vector
 	
 */
@@ -47,6 +53,8 @@ void lcd_zahl_16(uint16_t num, char* written)
 	written[i] = 0x00; // End marker
 	return;
 }
+
+
 
 /* lcd_zahl_16 converts a 16 bit number into a 5 digit char vector
 	
@@ -83,6 +91,8 @@ void lcd_zahl_s16(int16_t num, char* written)
 	return;
 }
 
+
+
 /* lcd_text writes the contents of a char vector to the the LCD display
 
 */
@@ -107,6 +117,8 @@ void lcd_text(char* ztext)
 	return;
 }
 
+
+
 /* lcd_cmd sends a command to the LCD display
 
 */
@@ -123,6 +135,7 @@ void lcd_cmd(unsigned char cmd)
 	_delay_ms(1);						// Befehlsausf?hrung
 	return;
 }
+
 
 
 /* lcd_init() initializes the LCD display
@@ -169,3 +182,5 @@ void lcd_init()
 	lcd_cmd(0x01);
 	_delay_ms(2);
 }
+
+

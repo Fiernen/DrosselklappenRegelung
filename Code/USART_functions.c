@@ -34,13 +34,11 @@ void USART_send(uint8_t msg)
 void USART_send_16(uint16_t msg)
 {
 	// Low must be send before high, otherwise are spikes in the resulting graph in the terminal app when the lower bite "overflows"
-// 	while (!(UCSRA & (1<<UDRE))); // Check for empty data buffer
-// 	UDR = msg & 0xFF; // Low 8 bits
-	USART_send((uint8_t) msg & 0xFF); // Low 8 bits
+	while (!(UCSRA & (1<<UDRE))); // Check for empty data buffer
+	UDR = msg & 0xFF; // Low 8 bits
 	
-// 	while (!(UCSRA & (1<<UDRE)));
-// 	UDR = msg>>8; // High 8 bits
-	USART_send((uint8_t) msg>>8); // High 8 bits
+	while (!(UCSRA & (1<<UDRE)));
+	UDR = msg>>8; // High 8 bits
 }
 
 
@@ -52,11 +50,17 @@ void USART_send_set_is(uint16_t set, uint16_t is)
 {
 	
 	// Header:
-// 	USART_send_16((uint16_t) 0xFFFF); // 0xFFFF should not be a possible value of set point or current value
+//  	USART_send_16((uint16_t) 0xFFFF); // 0xFFFF should not be a possible value of set point or current value
 	
 	// Data:
+	USART_send(255);
+	USART_send(0);
+	USART_send(100);
+	USART_send(10);
+	USART_send(110);
 	USART_send_16(set);
 	USART_send_16(is);
+	USART_send_16(OCR1A);
 }
 
 

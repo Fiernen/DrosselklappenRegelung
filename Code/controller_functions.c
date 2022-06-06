@@ -215,6 +215,7 @@ int16_t Motor_controller(uint16_t position, struct controller_params *params)
 
 	// Controller output scaling:
 	duty_cycle_scaled = ((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX; // int32 because the biggest number is 134148098)
+	
 	return duty_cycle_scaled;
 }
 

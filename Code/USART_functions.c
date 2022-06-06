@@ -48,7 +48,7 @@ void USART_send_16(uint16_t msg)
 /* USART_send_set_is(uint16_t set, uint16_t is) sends set point and current value via USART
 	
 */
-USART_send_set_is(uint16_t set, uint16_t is)
+void USART_send_set_is(uint16_t set, uint16_t is)
 {
 	
 	// Header:

@@ -96,7 +96,14 @@ uint16_t setpoint_measure()
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	return ADC;
+	uint16_t new_setpoint = ADC;
+	// Limit to positions which can be reached by the system:
+	if (new_setpoint > 863)
+	{
+		new_setpoint = 863;
+	}
+	
+
 }
 
 
@@ -122,7 +129,8 @@ int main(void)
 	TimerPWM_init();
 	TimerController_init();
 	ADConverter_init();
-	sei();
+	
+	sei(); // Enable interrupts
 	
 	
 
@@ -157,6 +165,7 @@ int main(void)
 // 		USART_send_16(position);
 
 		// Catch new controller parameters:
+		
 
 	}
 	return 0;

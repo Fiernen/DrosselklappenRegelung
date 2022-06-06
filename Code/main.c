@@ -112,16 +112,21 @@ uint16_t setpoint_measure()
 */
 int main(void)
 {
+	char lcd_str[16];
+	uint32_t angle =  800;
+	lcd_angle(angle, lcd_str);
+
 	#if DEBUG
 		DDRB |= 1<<DDB0;
 	#endif
 	
 	#if TEST
 		TEST_Motor_controller(&Motor_ctrl_params);
+		
 	// 	TEST_FIR_filter(&filter);
 	#endif
 	
-	char lcd_str[16];
+	
 
 	// Initialization:
 	lcd_init();

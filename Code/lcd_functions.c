@@ -57,9 +57,10 @@ void lcd_zahl_16(uint16_t num, char* written)
 /* lcd_angle converts a 16 bit number into a 5 digit char vector with decimal comma
 	
 */
-void lcd_angle(uint16_t num, char* written)
+void lcd_angle(uint32_t num, char* written)
 {
-	num = num*10*90/ANGLE_RANGE; // scale
+	num = num*10*90/863; // scale
+
 	uint16_t devisor;
 	uint8_t digit;
 	uint8_t i = 0;

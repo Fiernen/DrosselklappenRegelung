@@ -98,9 +98,9 @@ uint16_t setpoint_measure()
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
 	uint16_t new_setpoint = ADC;
 	// Limit to positions which can be reached by the system:
-	if (new_setpoint > 863)
+	if (new_setpoint > ANGLE_RANGE)
 	{
-		new_setpoint = 863;
+		new_setpoint = ANGLE_RANGE;
 	}
 	
 
@@ -142,11 +142,11 @@ int main(void)
 		
 		// Write to LCD-display:
 		lcd_cmd(0x81);
-		lcd_zahl_16(Motor_ctrl_params.position_setpoint, lcd_str);
+		lcd_angle(Motor_ctrl_params.position_setpoint, lcd_str);
 		lcd_text(lcd_str);		
 		
 		lcd_cmd(0x87);
-		lcd_zahl_16(position,lcd_str);
+		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
 		
 // 		lcd_cmd(0x87);

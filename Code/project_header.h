@@ -13,7 +13,7 @@
 
 
 #define	F_CPU 3686400
-
+#define ANGLE_RANGE 863
 
 
 #include <avr/interrupt.h>

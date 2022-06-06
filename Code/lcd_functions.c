@@ -54,7 +54,31 @@ void lcd_zahl_16(uint16_t num, char* written)
 	return;
 }
 
-
+/* lcd_angle converts a 16 bit number into a 5 digit char vector with decimal point
+	
+*/
+void lcd_angle(uint16_t num, char* written)
+{
+	num = num*10*90/ANGLE_RANGE;
+	uint16_t devisor;
+	uint8_t digit;
+	uint8_t i = 0;
+	
+	for (devisor=100; devisor != 0; devisor /= 10)
+	{
+		if (i == 2)
+		{
+			written[i] = 44;
+			i++;
+		}
+		digit = num/devisor;
+		written[i] = digit + 0x30;
+		num -= digit*devisor;
+		i++;
+	}
+	written[i] = 0x00; // End marker
+	return;
+}
 
 /* lcd_zahl_16 converts a 16 bit number into a 5 digit char vector
 	

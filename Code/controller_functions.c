@@ -72,8 +72,7 @@ int16_t position_measure(void)
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	uint16_t AD_value_2 = ADC;
-	AD_value_2 -= LOW_ADC2;
+	uint16_t AD_value_2 = ADC - LOW_ADC2;
 	
 	// ADC5
 	ADMUX &= ~0b1111;
@@ -81,8 +80,7 @@ int16_t position_measure(void)
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	uint16_t AD_value_5 = ADC;
-	AD_value_5 = -AD_value_5 + LOW_ADC5;
+	uint16_t AD_value_5 = -ADC + LOW_ADC5;
 	
 	// Open-circuit detection of the potentiometers:
 	/* Compare AD values. When the Difference is to high --> Open-circuit

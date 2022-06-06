@@ -14,13 +14,16 @@
 
 #define	F_CPU 3686400
 #define ANGLE_RANGE 863
-
+#define LOW_ADC2 172+1-74-2
+#define HIGH_ADC2 960
+#define LOW_ADC5 843+3+76+1
+#define HIGH_ADC5 053
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>
 
-
+uint8_t wire_damage;
 
 struct controller_params {
 	int16_t kP_position; // Gain

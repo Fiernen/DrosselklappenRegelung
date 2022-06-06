@@ -23,15 +23,14 @@ struct controller_params *params = &Motor_ctrl_params;
 uint16_t position;
 int16_t dduty_cycle;
 
-	
-	int16_t speed;
-	int16_t position_error;
-	int16_t speed_setpoint;
-	int16_t speed_error;
-	int16_t speed_P_term;
-	int16_t speed_I_term;
-	int32_t duty_cycle;
-	uint16_t duty_cycle_scaled;
+int16_t speed;
+int16_t position_error;
+int16_t speed_setpoint;
+int16_t speed_error;
+int16_t speed_P_term;
+int16_t speed_I_term;
+int32_t duty_cycle;
+uint16_t duty_cycle_scaled;
 	
 
 
@@ -113,8 +112,7 @@ uint16_t setpoint_measure()
 int main(void)
 {
 	char lcd_str[16];
-	uint32_t angle =  800;
-	lcd_angle(angle, lcd_str);
+	wire_damage = 0;
 
 	#if DEBUG
 		DDRB |= 1<<DDB0;
@@ -129,6 +127,8 @@ int main(void)
 	
 
 	// Initialization:
+	DDRB |= 1<<PB5; // Enable signal port
+	PORTB |= 1<<PB5; // Disable power electronics
 	lcd_init();
 	USART_init();
 	TimerPWM_init();
@@ -136,7 +136,7 @@ int main(void)
 	ADConverter_init();
 	
 	sei(); // Enable interrupts
-	
+	PORTB &= ~(1<<PB5); // Enable power electronics
 	
 
 	// Main Loop:
@@ -145,7 +145,20 @@ int main(void)
 		// get new set point:
 		Motor_ctrl_params.position_setpoint = setpoint_measure();
 		
+		// Send to PC via USART:
+		USART_send_set_is(Motor_ctrl_params.position_setpoint, position);
+
 		// Write to LCD-display:
+		if (wire_damage)
+		{
+			lcd_cmd(0x01);
+			lcd_cmd(0x80);
+			lcd_text("Broken Wire!");
+			lcd_cmd(0xC0);
+			lcd_text("Is shutdown!");
+		}
+		else
+		{
 		lcd_cmd(0x80);
 		lcd_angle(Motor_ctrl_params.position_setpoint, lcd_str);
 		lcd_text(lcd_str);		
@@ -161,7 +174,7 @@ int main(void)
 		lcd_cmd(0xC7);
 		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
-		
+		}
 // 		lcd_cmd(0x87);
 // 		lcd_zahl_s16(speed_P_term,lcd_str);
 // 		lcd_text(lcd_str);

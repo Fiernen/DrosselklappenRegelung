@@ -4,6 +4,7 @@
 */
 
 #include "project_header.h"
+// #include "controller_functions.h"
 
 
 /* TimerController_init() initialises the Timer/Counter 1 for controller interrupt
@@ -55,24 +56,28 @@ void TimerPWM_init(void)
 
 
 
+check_wire_integrety(uint16_t AD2, uint16_t AD5)
+{
+	if ((AD2 > (HIGH_ADC2+10)) || (AD2 < (LOW_ADC2-10)) || (AD5 > (HIGH_ADC5+10)) || (AD5 < (LOW_ADC5-10)))
+	{
+		wire_damage = 1;
+		PORTB |= 1<<PB5; // Disable power electronics
+	}
+}
+
+
 /* measure() measueres the AD-values at C2 and C5 and means the values
 
 */
 int16_t position_measure(void)
 {
-	
-	#define LOW_ADC2 172+1-74-2
-	#define HIGH_ADC2 960
-	#define LOW_ADC5 843+3+76+1
-	#define HIGH_ADC5 053
-
 	// ADC2
 	ADMUX &= ~0b1111;
 	ADMUX |= 0b0010; // PC2
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	uint16_t AD_value_2 = ADC - LOW_ADC2;
+	uint16_t AD_value_2 = ADC;
 	
 	// ADC5
 	ADMUX &= ~0b1111;
@@ -80,12 +85,16 @@ int16_t position_measure(void)
 	// Measure
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
-	uint16_t AD_value_5 = -ADC + LOW_ADC5;
+	uint16_t AD_value_5 = ADC;
 	
 	// Open-circuit detection of the potentiometers:
 	/* Compare AD values. When the Difference is to high --> Open-circuit
 			--> Warning. Shutdown? or switch to operation with just one potentiometer*/
-	
+	check_wire_integrety(AD_value_2, AD_value_5);	
+
+	AD_value_2 = AD_value_2 - LOW_ADC2;
+	AD_value_5 = -AD_value_5 + LOW_ADC5;	
+
 	// Mean:
 	return (AD_value_2 + AD_value_5 + 1)/2; // Ultra smart rounding
 }

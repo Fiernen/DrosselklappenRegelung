@@ -102,7 +102,7 @@ uint16_t setpoint_measure()
 	{
 		new_setpoint = ANGLE_RANGE;
 	}
-	
+	return new_setpoint;
 
 }
 

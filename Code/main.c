@@ -141,12 +141,20 @@ int main(void)
 		Motor_ctrl_params.position_setpoint = setpoint_measure();
 		
 		// Write to LCD-display:
-		lcd_cmd(0x81);
+		lcd_cmd(0x80);
 		lcd_angle(Motor_ctrl_params.position_setpoint, lcd_str);
 		lcd_text(lcd_str);		
 		
 		lcd_cmd(0x87);
 		lcd_angle(position,lcd_str);
+		lcd_text(lcd_str);
+
+		lcd_cmd(0xC0);
+		lcd_zahl_16(Motor_ctrl_params.position_setpoint, lcd_str);
+		lcd_text(lcd_str);
+
+		lcd_cmd(0xC7);
+		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
 		
 // 		lcd_cmd(0x87);

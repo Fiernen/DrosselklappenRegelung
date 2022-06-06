@@ -76,7 +76,7 @@ void lcd_angle(uint16_t num, char* written)
 		num -= digit*devisor;
 		i++;
 	}
-	written[i] = '°';
+	written[i] = 0xDF;
 	i++;
 	written[i] = 0x00; // End marker
 	return;

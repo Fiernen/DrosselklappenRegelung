@@ -16,8 +16,8 @@ Features:
 #include "USART_functions.h"
 #include "controller_functions.h"
 
-// struct filter_params filter = {.increment=0, .last_increment=FILTER_SIZE, .stack = {0}, .sum=0};
-struct controller_params Motor_ctrl_params = {.kP_position=1, .kP_speed=1, .TN_speed=10, .position_setpoint=800};
+struct filter_params filter = {.increment=0, .stack = {0}, .sum=0};
+struct controller_params Motor_ctrl_params = {.kP_position=10, .kP_speed=1, .TN_speed=20, .position_setpoint=400};
 struct controller_params *params = &Motor_ctrl_params;
 
 uint16_t position;
@@ -119,12 +119,11 @@ int main(void)
 	#endif
 	
 	#if TEST
-		TEST_Motor_controller(&Motor_ctrl_params);
-		
-	// 	TEST_FIR_filter(&filter);
+// 		TEST_Motor_controller(&Motor_ctrl_params);
+	 	TEST_FIR_filter(&filter);
 	#endif
 	
-	
+	uint8_t dummy = 0;	
 
 	// Initialization:
 	DDRB |= 1<<PB5; // Enable signal port
@@ -134,19 +133,43 @@ int main(void)
 	TimerPWM_init();
 	TimerController_init();
 	ADConverter_init();
+	while (UCSRA & (1<<RXC))
+	{
+		dummy = UDR;
+	}
 	
 	sei(); // Enable interrupts
 	PORTB &= ~(1<<PB5); // Enable power electronics
 	
+	uint8_t USART_Recieve_counter = 0;
 
 	// Main Loop:
 	while(1)
 	{
+// 		if (UCSRA & (1<<RXC))
+// 		{
+// 			if (UDR == 0xFF) // Check if header is send (parameters are not allowed to be 255)
+// 			{
+// 				USART_Recieve_counter = 1; // Set counter for trailing parameters
+// 				dummy = UDR; // flush latest msg
+// 
+// 			}
+// 			else
+// 			{
+// 				switch (USART_Recieve_counter) // Set parameter according to the trailing positions after the header
+// 				{
+// 					case 1: Motor_ctrl_params.kP_position = UDR; USART_Recieve_counter++; break;
+// 					case 2: Motor_ctrl_params.kP_speed = UDR; USART_Recieve_counter++; break;
+// 					case 3: Motor_ctrl_params.TN_speed = UDR; USART_Recieve_counter = 0; break;
+// 					default: dummy = UDR; //flush last msg
+// 				}
+// 			}
+// 		}
 		// get new set point:
 		Motor_ctrl_params.position_setpoint = setpoint_measure();
 		
 		// Send to PC via USART:
-		USART_send_set_is(Motor_ctrl_params.position_setpoint, position);
+// 		USART_send_set_is(Motor_ctrl_params.position_setpoint, position);
 
 		// Write to LCD-display:
 		if (wire_damage)
@@ -156,6 +179,8 @@ int main(void)
 			lcd_text("Broken Wire!");
 			lcd_cmd(0xC0);
 			lcd_text("Is shutdown!");
+			_delay_ms(250);
+			lcd_cmd(0x01);
 		}
 		else
 		{
@@ -168,12 +193,21 @@ int main(void)
 		lcd_text(lcd_str);
 
 		lcd_cmd(0xC0);
-		lcd_zahl_16(Motor_ctrl_params.position_setpoint, lcd_str);
+		lcd_zahl(Motor_ctrl_params.kP_position, lcd_str);
 		lcd_text(lcd_str);
 
-		lcd_cmd(0xC7);
-		lcd_zahl_16(position,lcd_str);
+		lcd_cmd(0xC4);
+		lcd_zahl(Motor_ctrl_params.kP_speed,lcd_str);
 		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC8);
+		lcd_zahl(Motor_ctrl_params.TN_speed,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xCC);
+		lcd_zahl(dummy,lcd_str);
+		lcd_text(lcd_str);
+		
 		}
 // 		lcd_cmd(0x87);
 // 		lcd_zahl_s16(speed_P_term,lcd_str);
@@ -204,7 +238,7 @@ int main(void)
 */
 ISR(TIMER0_OVF_vect)
 {
-
+	
 	#if DEBUG
 		PORTB |= 1<<0; // Time measure 
 	#endif
@@ -215,7 +249,7 @@ ISR(TIMER0_OVF_vect)
 
 	#else // Compile normal operation control-loop
 		position = position_measure();
-	// 	position = FIR_filter(position, &filter);
+	 	position = FIR_filter(position, &filter);
 	// 	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
 	
 		// Limits for overflow protection
@@ -227,7 +261,7 @@ ISR(TIMER0_OVF_vect)
 		int32_t MIN_speed_error_integral = (int32_t) INT16_MIN/params->TN_speed*10;
 		#define MAX_PWM_duty_cycle INT16_MAX
 		#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
-	
+
 		static int16_t prev_sample_position = 0;
 		static int32_t speed_error_integral = 0;
 
@@ -237,7 +271,7 @@ ISR(TIMER0_OVF_vect)
 
 		// P-term-position, with overflow protection:
 		position_error = limit_int16((int32_t) params->position_setpoint - position, MIN_position_error, MAX_position_error);
-		speed_setpoint = params->kP_position * position_error;
+		speed_setpoint = position_error * params->kP_position/8;
 	
 		// P-term-speed, with overflow protection:
 		speed_error = limit_int16((int32_t) speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
@@ -245,7 +279,7 @@ ISR(TIMER0_OVF_vect)
 	
 		// I-term-speed, with limits/overflow protection:
 		speed_error_integral = limit_integral(speed_error_integral + speed_P_term, MIN_speed_error_integral, -MIN_speed_error_integral-1);
-		speed_I_term = speed_error_integral*params->TN_speed/10;
+		speed_I_term = speed_error_integral / params->TN_speed / 10;
 	
 		// Controller output P+I, with limits/overflow protection:
 		duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
@@ -264,3 +298,10 @@ ISR(TIMER0_OVF_vect)
 	#endif
 
 }
+
+uint8_t USART_Recieve_counter = 0;
+/* ISR(USART_RXC_vect) triggers when data is received from USART and */
+// ISR(USART_RXC_vect_num)
+// {
+// 
+// }

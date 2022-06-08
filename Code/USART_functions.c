@@ -46,7 +46,7 @@ void USART_send_16(uint16_t msg)
 /* USART_send_set_is(uint16_t set, uint16_t is) sends set point and current value via USART
 	
 */
-void USART_send_set_is(uint16_t set, uint16_t is)
+void USART_send_set_is( uint16_t position_setpoint, uint16_t position, int16_t speed_setpoint, int16_t speed, int16_t speed_P_term, int16_t speed_I_term)
 {
 	
 	// Header:
@@ -58,9 +58,14 @@ void USART_send_set_is(uint16_t set, uint16_t is)
 	USART_send(100);
 	USART_send(10);
 	USART_send(110);
-	USART_send_16(set);
-	USART_send_16(is);
+	USART_send_16(position_setpoint);
+	USART_send_16(position);
 	USART_send_16(OCR1A);
+	USART_send_16(speed_setpoint);
+	USART_send_16(speed);
+	USART_send_16(speed_P_term);
+	USART_send_16(speed_I_term);
+	
 }
 
 

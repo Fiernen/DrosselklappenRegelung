@@ -60,7 +60,7 @@ int main(void)
 	{
 
 		// get new set point:
-		position_setpoint = setpoint_measure();
+		position_setpoint = 400; //setpoint_measure();
 		
 		// Send to PC via USART:
 		USART_send_set_is();
@@ -85,22 +85,30 @@ int main(void)
 		lcd_cmd(0x87);
 		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
-
+		
 		lcd_cmd(0xC0);
-		lcd_zahl_16(position_setpoint, lcd_str);
-		lcd_text(lcd_str);
-
-		lcd_cmd(0xC4);
-		lcd_zahl(kP_speed,lcd_str);
+		lcd_zahl_s16(USART_send_3, lcd_str);
 		lcd_text(lcd_str);
 		
-		lcd_cmd(0xC8);
-		lcd_zahl(TN_speed,lcd_str);
+		lcd_cmd(0xC7);
+		lcd_zahl_s16(USART_send_2, lcd_str);
 		lcd_text(lcd_str);
 		
-		lcd_cmd(0xCC);
-		lcd_zahl(000,lcd_str);
-		lcd_text(lcd_str);
+// 		lcd_cmd(0xC0);
+// 		lcd_zahl_16(position_setpoint, lcd_str);
+// 		lcd_text(lcd_str);
+// 
+// 		lcd_cmd(0xC4);
+// 		lcd_zahl(kP_speed,lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xC8);
+// 		lcd_zahl(TN_speed,lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xCC);
+// 		lcd_zahl(000,lcd_str);
+// 		lcd_text(lcd_str);
 		
 		}
 	}
@@ -121,7 +129,7 @@ ISR(TIMER0_OVF_vect)
 	
 	
 		position = position_measure();
-	 	position = FIR_filter(position);
+// 	 	position = FIR_filter(position);
 		OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
 
 	

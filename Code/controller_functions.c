@@ -89,7 +89,7 @@ int16_t position_measure(void)
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
 	uint16_t AD_value_2 = ADC;
-	
+	USART_send_5 = AD_value_2;
 	// ADC5
 	ADMUX &= ~0b1111;
 	ADMUX |= 0b0101; // PC5
@@ -97,7 +97,7 @@ int16_t position_measure(void)
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
 	uint16_t AD_value_5 = ADC;
-	
+	USART_send_6 = AD_value_5;
 	// Open-circuit detection of the potentiometers wires:
 	check_wire_integrety(AD_value_2, AD_value_5);
 
@@ -110,23 +110,50 @@ int16_t position_measure(void)
 
 
 
+/* setpoint_measure() measuers a potentiometer at PC0 to change setpoint
+	
+*/
+uint16_t setpoint_measure()
+{	
+	// ADC0
+	ADMUX &= ~0b1111;
+	ADMUX |= 0b0000; // PC0
+	// Measure
+	ADCSRA |= 1<<ADSC; // Start Conversion
+	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
+	uint16_t new_setpoint = ADC;
+	// Limit to positions which can be reached by the system:
+	if (new_setpoint > ANGLE_RANGE)
+	{
+		new_setpoint = ANGLE_RANGE;
+	}
+	return new_setpoint;
+
+}
+
+
+
 /* FIR_filter(new_value, *params) implements a FIR-filter
 	a function call replaces the oldest value in the stack and calculates the new mean.
 */
-uint16_t FIR_filter(uint16_t new_value, struct filter_params *F_params)
+uint16_t FIR_filter(uint16_t new_value)
 {
-	F_params->sum = F_params->sum - F_params->stack[F_params->increment] + new_value; // Correct sum
-	F_params->stack[F_params->increment] = new_value; // Replace oldest field with new value
+	static uint16_t stack[FILTER_SIZE] = {0};
+	static int32_t sum = 0;
+	static uint8_t increment = 0;
+	
+	sum = (int32_t) sum - stack[increment] + new_value; // Correct sum
+	stack[increment] = new_value; // Replace oldest field with new value
 	
 	
 	// Increment to next container field:
-	F_params->increment++;
-	if (F_params->increment >= FILTER_SIZE)
+	increment++;
+	if (increment >= FILTER_SIZE) // Go back to first field when end of stack is reached
 	{
-		F_params->increment = 0;
+		increment = 0;
 	}
 	
-	return F_params->sum/FILTER_SIZE; // Return mean value
+	return sum/FILTER_SIZE; // Return mean value
 }
 
 /* limit_int16(var, MAX, MIN) Limits the argument var between INT16_MIN and INT16_MAX 
@@ -186,7 +213,7 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 /* Motor_controller() implements a cascading P-position-controller into PI-speed-controller
 
 */
-uint16_t Motor_controller(uint16_t position, struct controller_params *params)
+uint16_t Motor_controller(uint16_t position, uint8_t position_setpoint, uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {
 
 	int16_t speed;
@@ -198,12 +225,12 @@ uint16_t Motor_controller(uint16_t position, struct controller_params *params)
 	int16_t duty_cycle;
 	uint32_t duty_cycle_scaled;
 	
-	int16_t MAX_position_error = INT16_MAX/params->kP_position;
-	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
-	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
-	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
-// 	int32_t MAX_speed_error_integral = INT16_MAX/(params->TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
-	int32_t MIN_speed_error_integral = (int32_t) INT16_MIN/params->TN_speed*10;
+	int16_t MAX_position_error = INT16_MAX/kP_position;
+	int16_t MIN_position_error = -INT16_MAX/kP_position;
+	int16_t MAX_speed_error = INT16_MAX/kP_speed;
+	int16_t MIN_speed_error = -INT16_MAX/kP_speed;
+// 	int32_t MAX_speed_error_integral = INT16_MAX/(TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
+	int32_t MIN_speed_error_integral = (int32_t) INT16_MIN/TN_speed*10;
 	#define MAX_PWM_duty_cycle INT16_MAX
 	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
 	
@@ -215,16 +242,16 @@ uint16_t Motor_controller(uint16_t position, struct controller_params *params)
 	prev_sample_position = position;
 
 	// P-term-position, with overflow protection:
-	position_error = limit_int16((int32_t) params->position_setpoint - position, MIN_position_error, MAX_position_error);
-	speed_setpoint = params->kP_position * position_error;
+	position_error = limit_int16((int32_t) position_setpoint - position, MIN_position_error, MAX_position_error);
+	speed_setpoint = kP_position * position_error;
 	
 	// P-term-speed, with overflow protection:
 	speed_error = limit_int16((int32_t) speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
-	speed_P_term = params->kP_speed * speed_error;
+	speed_P_term = kP_speed * speed_error;
 	
 	// I-term-speed, with limits/overflow protection:
 	speed_error_integral = limit_integral(speed_error_integral + speed_P_term, MIN_speed_error_integral, -MIN_speed_error_integral-1);
-	speed_I_term = speed_error_integral*params->TN_speed/10;
+	speed_I_term = speed_error_integral*TN_speed/10;
 	
 	// Controller output P+I, with limits/overflow protection:
 	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);

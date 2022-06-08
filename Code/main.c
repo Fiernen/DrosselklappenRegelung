@@ -18,9 +18,9 @@ Features:
 
 
 
-uint8_t kP_position=10;
+uint8_t kP_position=1;
 uint8_t kP_speed=1;
-uint8_t TN_speed=20;
+uint8_t TN_speed=2;
 uint16_t position_setpoint = 0;
 uint16_t position;
 

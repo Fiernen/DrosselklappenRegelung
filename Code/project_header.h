@@ -13,11 +13,11 @@
 
 
 #define	F_CPU 3686400
-#define ANGLE_RANGE 863
-#define LOW_ADC2 97
-#define HIGH_ADC2 960
-#define LOW_ADC5 923
-#define HIGH_ADC5 053
+#define ANGLE_RANGE 877
+#define LOW_ADC2 94
+#define HIGH_ADC2 965
+#define LOW_ADC5 926
+#define HIGH_ADC5 49
 #define MEAN_AD (HIGH_ADC2+HIGH_ADC5+1)/2 // Smart rounding
 #define WIRE_TOLERANCE 10
 

@@ -40,3 +40,11 @@ struct filter_params {
 };
 
 
+uint16_t USART_send_1;
+uint16_t USART_send_2;
+uint16_t USART_send_3;
+uint16_t USART_send_4;
+uint16_t USART_send_5;
+uint16_t USART_send_6;
+uint16_t USART_send_7;
+uint16_t USART_send_8;

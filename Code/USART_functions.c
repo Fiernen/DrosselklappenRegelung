@@ -43,24 +43,37 @@ void USART_send_16(uint16_t msg)
 
 
 
-/* USART_send_set_is(uint16_t set, uint16_t is) sends set point and current value via USART
+/* USART_send_debug() 
 	
 */
-void USART_send_set_is(uint16_t set, uint16_t is)
+void USART_send_package(void)
 {
 	
 	// Header:
-//  	USART_send_16((uint16_t) 0xFFFF); // 0xFFFF should not be a possible value of set point or current value
-	
-	// Data:
 	USART_send(255);
 	USART_send(0);
 	USART_send(100);
 	USART_send(10);
 	USART_send(110);
-	USART_send_16(set);
-	USART_send_16(is);
-	USART_send_16(OCR1A);
+	
+	// Data:
+	USART_send_16(USART_send_1);
+	USART_send_16(USART_send_2);
+	USART_send_16(USART_send_3);
+	USART_send_16(USART_send_4);
+	USART_send_16(USART_send_5);
+	USART_send_16(USART_send_6);
+	USART_send_16(USART_send_7);
+	USART_send_16(USART_send_8);
+	
 }
 
 
+void USART_flush_receive(void)
+{
+	uint8_t dummy = 0;
+	while (UCSRA & (1<<RXC))  // Flush any msg in USART receive buffer
+	{
+		dummy = UDR;
+	}
+}

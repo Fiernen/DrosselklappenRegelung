@@ -89,7 +89,7 @@ int16_t position_measure(void)
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
 	uint16_t AD_value_2 = ADC;
-// 	USART_send_5 = AD_value_2;
+	USART_send_5 = AD_value_2;
 	// ADC5
 	ADMUX &= ~0b1111;
 	ADMUX |= 0b0101; // PC5
@@ -97,7 +97,7 @@ int16_t position_measure(void)
 	ADCSRA |= 1<<ADSC; // Start Conversion
 	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
 	uint16_t AD_value_5 = ADC;
-// 	USART_send_6 = AD_value_5;
+	USART_send_6 = AD_value_5;
 	// Open-circuit detection of the potentiometers wires:
 	check_wire_integrety(AD_value_2, AD_value_5);
 
@@ -113,7 +113,7 @@ int16_t position_measure(void)
 /* setpoint_measure() measuers a potentiometer at PC0 to change setpoint
 	
 */
-uint16_t setpoint_measure(void)
+uint16_t setpoint_measure()
 {	
 	// ADC0
 	ADMUX &= ~0b1111;
@@ -234,11 +234,11 @@ uint16_t Motor_controller(uint16_t position, uint8_t position_setpoint, uint8_t 
 	#define MAX_PWM_duty_cycle INT16_MAX
 	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
 	
-	static uint16_t prev_sample_position = 0;
+	static int16_t prev_sample_position = 0;
 	static int32_t speed_error_integral = 0;
 
 	// D-Term-speed;
-	speed =  (position-prev_sample_position); // derivative
+	speed = (position-prev_sample_position); // derivative
 	prev_sample_position = position;
 
 	// P-term-position, with overflow protection:
@@ -262,13 +262,6 @@ uint16_t Motor_controller(uint16_t position, uint8_t position_setpoint, uint8_t 
 	// Controller output scaling:
 	duty_cycle_scaled = (uint16_t) duty_cycle;
 	
-	USART_send_1 = position;
-	USART_send_2 = speed_setpoint;
-	USART_send_3 = speed_P_term;
-	USART_send_4 = speed_I_term;
-	USART_send_5 = duty_cycle_scaled;
-	USART_send_6 = position_setpoint;
-		
 	return duty_cycle_scaled;
 }
 

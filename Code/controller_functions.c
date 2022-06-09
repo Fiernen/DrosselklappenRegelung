@@ -27,7 +27,7 @@ void ADConverter_init()
 	ADMUX |= 0<<ADLAR; // write right sided
 	ADCSRA |= 1<<ADEN; // Enable
 	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
-	return;
+	
 }
 
 
@@ -49,29 +49,19 @@ void TimerPWM_init(void)
 		The Frequency of the PWM signal is 225 Hz. F_PWM = F_CPU/(N*(TOP+1))
 		Generally aim for low prescaler N and high TOP-value for better accuracy */
 	ICR1 = 0x07FF; // TOP-value 11 bit
-	TCCR1B |= (0<<CS12)|(0<<CS11)|(1<<CS10); // Prescaler N = ?
+	TCCR1B |= (0<<CS12)|(0<<CS11)|(1<<CS10); // Prescaler N = 8
 	
 	OCR1A = ICR1/2; // Set default duty cycle to 50%
-	return;
 }
 
 
-/* void check_wire_integrety(uint16_t AD2, uint16_t AD5) checks for open circuit in the measuring
 
-*/
 void check_wire_integrety(uint16_t AD2, uint16_t AD5)
 {
-	int16_t diff = (int16_t) (AD2 - LOW_ADC2) - (-AD5 + LOW_ADC5);
-	if (diff < 0) {diff = -diff;} // absolute
-	if ((diff > 20) || (AD2 > (HIGH_ADC2+WIRE_TOLERANCE)) || (AD2 < (LOW_ADC2-WIRE_TOLERANCE)) || (AD5 > (LOW_ADC5+WIRE_TOLERANCE)) || (AD5 < (HIGH_ADC5-WIRE_TOLERANCE)))
+	if ((AD2 > (HIGH_ADC2+10)) || (AD2 < (LOW_ADC2-10)) || (AD5 > (HIGH_ADC5+10)) || (AD5 < (LOW_ADC5-10)))
 	{
 		wire_damage = 1;
 		PORTB |= 1<<PB5; // Disable power electronics
-	}
-	else
-	{
-		wire_damage = 0;
-		PORTB &= ~(1<<PB5); // Enable power electronics
 	}
 	return;
 }
@@ -99,7 +89,7 @@ int16_t position_measure(void)
 	uint16_t AD_value_5 = ADC;
 	
 	// Open-circuit detection of the potentiometers wires:
-	check_wire_integrety(AD_value_2, AD_value_5);
+// 	check_wire_integrety(AD_value_2, AD_value_5);	
 
 	AD_value_2 = AD_value_2 - LOW_ADC2;
 	AD_value_5 = -AD_value_5 + LOW_ADC5;	
@@ -113,20 +103,20 @@ int16_t position_measure(void)
 /* FIR_filter(new_value, *params) implements a FIR-filter
 	a function call replaces the oldest value in the stack and calculates the new mean.
 */
-uint16_t FIR_filter(uint16_t new_value, struct filter_params *F_params)
+int16_t FIR_filter(int16_t new_value, struct filter_params *params)
 {
-	F_params->sum = F_params->sum - F_params->stack[F_params->increment] + new_value; // Correct sum
-	F_params->stack[F_params->increment] = new_value; // Replace oldest field with new value
-	
+	params->stack[params->increment] = new_value; // Replace oldest field with new value
+	params->sum = params->sum - params->stack[params->last_increment] + new_value; // Correct sum
 	
 	// Increment to next container field:
-	F_params->increment++;
-	if (F_params->increment >= FILTER_SIZE)
+	params->last_increment = params->increment;
+	params->increment++;
+	if (params->increment > FILTER_SIZE)
 	{
-		F_params->increment = 0;
+		params->increment = 0;
 	}
 	
-	return F_params->sum/FILTER_SIZE; // Return mean value
+	return params->sum/FILTER_SIZE; // Return mean value
 }
 
 /* limit_int16(var, MAX, MIN) Limits the argument var between INT16_MIN and INT16_MAX 
@@ -186,7 +176,7 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 /* Motor_controller() implements a cascading P-position-controller into PI-speed-controller
 
 */
-uint16_t Motor_controller(uint16_t position, struct controller_params *params)
+int16_t Motor_controller(uint16_t position, struct controller_params *params)
 {
 
 	int16_t speed;
@@ -196,14 +186,14 @@ uint16_t Motor_controller(uint16_t position, struct controller_params *params)
 	int16_t speed_P_term;
 	int16_t speed_I_term;
 	int16_t duty_cycle;
-	uint32_t duty_cycle_scaled;
+	int32_t duty_cycle_scaled;
 	
 	int16_t MAX_position_error = INT16_MAX/params->kP_position;
 	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
 	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
 	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
 // 	int32_t MAX_speed_error_integral = INT16_MAX/(params->TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
-	int32_t MIN_speed_error_integral = (int32_t) INT16_MIN/params->TN_speed*10;
+	int32_t MIN_speed_error_integral = INT16_MIN/(params->TN_speed*10);
 	#define MAX_PWM_duty_cycle INT16_MAX
 	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
 	
@@ -228,12 +218,9 @@ uint16_t Motor_controller(uint16_t position, struct controller_params *params)
 	
 	// Controller output P+I, with limits/overflow protection:
 	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
-	duty_cycle = (duty_cycle + 32767);
-	duty_cycle = duty_cycle*ICR1;
-	duty_cycle = duty_cycle/UINT16_MAX;
 
 	// Controller output scaling:
-	duty_cycle_scaled = (uint16_t) duty_cycle;
+	duty_cycle_scaled = ((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX; // int32 because the biggest number is 134148098)
 	
 	return duty_cycle_scaled;
 }

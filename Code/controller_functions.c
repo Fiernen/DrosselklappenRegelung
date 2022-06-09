@@ -74,6 +74,7 @@ void check_wire_integrety(uint16_t AD2, uint16_t AD5)
 }
 
 
+
 /* measure() measueres the AD-values at C2 and C5 and means the values
 
 */
@@ -107,23 +108,27 @@ int16_t position_measure(void)
 
 
 
-/* FIR_filter(new_value, *params) implements a FIR-filter
-	a function call replaces the oldest value in the stack and calculates the new mean.
+/* FIR_filter(new_value implements a FIR-filter
+	a function call replaces the oldest value in the stack and calculates the new sum and return the mean.
 */
-int16_t FIR_filter(int16_t new_value, struct filter_params *params)
+uint16_t FIR_filter(uint16_t new_value)
 {
-	params->stack[params->increment] = new_value; // Replace oldest field with new value
-	params->sum = params->sum - params->stack[params->last_increment] + new_value; // Correct sum
+	static uint16_t stack[FILTER_SIZE] = {0};
+	static uint32_t sum = 0;
+	static uint8_t increment = 0;
+	
+	sum = (uint32_t) sum - stack[increment] + new_value; // Correct sum
+	stack[increment] = new_value; // Replace oldest field with new value
+	
 	
 	// Increment to next container field:
-	params->last_increment = params->increment;
-	params->increment++;
-	if (params->increment > FILTER_SIZE)
+	increment++;
+	if (increment >= FILTER_SIZE) // Go back to first field when end of stack is reached
 	{
-		params->increment = 0;
+		increment = 0;
 	}
 	
-	return params->sum/FILTER_SIZE; // Return mean value
+	return (uint16_t) sum/FILTER_SIZE; // Return mean value
 }
 
 /* limit_int16(var, MAX, MIN) Limits the argument var between INT16_MIN and INT16_MAX 

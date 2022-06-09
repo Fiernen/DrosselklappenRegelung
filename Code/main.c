@@ -141,7 +141,8 @@ ISR(TIMER0_OVF_vect)
 	#endif
 
 	position = position_measure();
-// 	position = FIR_filter(position, &filter);
+	USART_send_4 = position;
+	position = FIR_filter(position);
 // 	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
 	
 	// Limits for overflow protection

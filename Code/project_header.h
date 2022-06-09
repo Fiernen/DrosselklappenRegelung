@@ -10,7 +10,7 @@
 #define PULSE_WIDTH_SAMPLES 2
 #define MANUAL_CONTROL 0
 #define FILTER_SIZE 5
-
+#define WIRE_TOLERANCE 10
 
 #define	F_CPU 3686400
 #define LOW_ADC2 94

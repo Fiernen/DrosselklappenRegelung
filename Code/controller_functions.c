@@ -58,10 +58,17 @@ void TimerPWM_init(void)
 
 void check_wire_integrety(uint16_t AD2, uint16_t AD5)
 {
-	if ((AD2 > (HIGH_ADC2+10)) || (AD2 < (LOW_ADC2-10)) || (AD5 > (HIGH_ADC5+10)) || (AD5 < (LOW_ADC5-10)))
+	int16_t diff = (int16_t) (AD2 - LOW_ADC2) - (-AD5 + LOW_ADC5);
+	if (diff < 0) {diff = -diff;} // absolute
+	if ((diff > 20) || (AD2 > (HIGH_ADC2+WIRE_TOLERANCE)) || (AD2 < (LOW_ADC2-WIRE_TOLERANCE)) || (AD5 > (LOW_ADC5+WIRE_TOLERANCE)) || (AD5 < (HIGH_ADC5-WIRE_TOLERANCE)))
 	{
 		wire_damage = 1;
 		PORTB |= 1<<PB5; // Disable power electronics
+	}
+	else
+	{
+		wire_damage = 0;
+		PORTB &= ~(1<<PB5); // Enable power electronics
 	}
 	return;
 }
@@ -89,7 +96,7 @@ int16_t position_measure(void)
 	uint16_t AD_value_5 = ADC;
 	
 	// Open-circuit detection of the potentiometers wires:
-// 	check_wire_integrety(AD_value_2, AD_value_5);	
+	check_wire_integrety(AD_value_2, AD_value_5);	
 
 	AD_value_2 = AD_value_2 - LOW_ADC2;
 	AD_value_5 = -AD_value_5 + LOW_ADC5;	

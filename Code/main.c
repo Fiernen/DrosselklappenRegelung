@@ -143,10 +143,10 @@ int main(void)
 	while(1)
 	{
 		// get new set point:
-		Motor_ctrl_params.position_setpoint = setpoint_measure();
+// 		Motor_ctrl_params.position_setpoint = setpoint_measure();
 		
 		// Send to PC via USART:
-		USART_send_set_is(Motor_ctrl_params.position_setpoint, position);
+// 		USART_send_set_is(Motor_ctrl_params.position_setpoint, position);
 
 		// Write to LCD-display:
 		if (wire_damage)
@@ -257,6 +257,9 @@ ISR(TIMER0_OVF_vect)
 		duty_cycle_scaled = (uint16_t) duty_cycle;
 	
 		OCR1A = duty_cycle_scaled;
+		
+		params->position_setpoint = setpoint_measure();
+		
 	#endif
 	
 	#if DEBUG

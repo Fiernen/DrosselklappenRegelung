@@ -9,7 +9,7 @@
 #define MEASURE_IMPULSE_RESP 0
 #define PULSE_WIDTH_SAMPLES 2
 #define MANUAL_CONTROL 0
-#define FILTER_SIZE 128
+#define FILTER_SIZE 32
 #define WIRE_TOLERANCE 10
 
 #define	F_CPU 3686400
@@ -29,17 +29,16 @@ struct controller_params {
 	int16_t kP_position; // Gain
 	int16_t kP_speed; // Gain
 	int16_t TN_speed; // Integrator time constant
-	int16_t position_setpoint;
+	uint16_t position_setpoint;
 };
 
 struct filter_params {
-	int16_t stack[FILTER_SIZE];
+	uint16_t stack[FILTER_SIZE];
 	uint8_t increment;
-	uint8_t last_increment;
-	int16_t sum;
+	uint16_t sum;
 };
 
-
+// uint8_t USART_send_status;
 uint16_t USART_send_1;
 uint16_t USART_send_2;
 uint16_t USART_send_3;

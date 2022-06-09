@@ -189,7 +189,8 @@ ISR(TIMER0_OVF_vect)
 	USART_send_2 = params->position_setpoint;
 	USART_send_3 = duty_cycle_scaled;
 	
-	params->position_setpoint = setpoint_measure();
+	uint16_t new_position_setpoint = setpoint_measure();
+	params->position_setpoint = FIR_filter2(new_position_setpoint);
 	
 	#if DEBUG
 		PORTB &= ~(1<<0);

@@ -131,6 +131,33 @@ uint16_t FIR_filter(uint16_t new_value)
 	return (uint16_t) sum/FILTER_SIZE; // Return mean value
 }
 
+
+
+/* FIR_filter(new_value implements a FIR-filter
+	a function call replaces the oldest value in the stack and calculates the new sum and return the mean.
+*/
+uint16_t FIR_filter2(uint16_t new_value)
+{
+	static uint16_t stack[FILTER_SIZE] = {0};
+	static uint32_t sum = 0;
+	static uint8_t increment = 0;
+	
+	sum = (uint32_t) sum - stack[increment] + new_value; // Correct sum
+	stack[increment] = new_value; // Replace oldest field with new value
+	
+	
+	// Increment to next container field:
+	increment++;
+	if (increment >= FILTER_SIZE) // Go back to first field when end of stack is reached
+	{
+		increment = 0;
+	}
+	
+	return (uint16_t) sum/FILTER_SIZE; // Return mean value
+}
+
+
+
 /* limit_int16(var, MAX, MIN) Limits the argument var between INT16_MIN and INT16_MAX 
 
 */

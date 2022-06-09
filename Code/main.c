@@ -17,8 +17,10 @@ Features:
 #include "controller_functions.h"
 
 // struct filter_params filter = {.increment=0, .last_increment=FILTER_SIZE, .stack = {0}, .sum=0};
-struct controller_params Motor_ctrl_params = {.kP_position=1, .kP_speed=1, .TN_speed=10, .position_setpoint=800};
+struct controller_params Motor_ctrl_params = {.kP_position=10, .kP_speed=1000, .TN_speed=10, .position_setpoint=800};
 struct controller_params *params = &Motor_ctrl_params;
+
+
 
 uint16_t position;
 int16_t dduty_cycle;
@@ -78,14 +80,7 @@ int main(void)
 	ADConverter_init();
 
 	
-	USART_send_1 = 0;
-	USART_send_2 = 0;
-	USART_send_3 = 0;
-	USART_send_4 = 0;
-	USART_send_5 = 0;
-	USART_send_6 = 0;
-	USART_send_7 = 0;
-	USART_send_8 = 0;
+
 	
 	sei(); // Enable interrupts
 	PORTB &= ~(1<<PB5); // Enable power electronics
@@ -117,11 +112,11 @@ int main(void)
 		lcd_text(lcd_str);
 
 		lcd_cmd(0xC0);
-		lcd_zahl_16(Motor_ctrl_params.position_setpoint, lcd_str);
+		lcd_zahl_s16(speed_setpoint, lcd_str);
 		lcd_text(lcd_str);
 
 		lcd_cmd(0xC7);
-		lcd_zahl_16(position,lcd_str);
+		lcd_zahl_s16(speed_P_term,lcd_str);
 		lcd_text(lcd_str);
 		
 	}
@@ -145,16 +140,7 @@ ISR(TIMER0_OVF_vect)
 	position = FIR_filter(position);
 // 	dduty_cycle = Motor_controller(position, &Motor_ctrl_params);
 	
-	// Limits for overflow protection
-	int16_t MAX_position_error = INT16_MAX/params->kP_position;
-	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
-	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
-	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
-	// 	int32_t MAX_speed_error_integral = INT16_MAX/(params->TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
-	int32_t MIN_speed_error_integral = (int32_t) INT16_MIN/params->TN_speed*10;
-	#define MAX_PWM_duty_cycle INT16_MAX
-	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
-	
+
 	static int16_t prev_sample_position = 0;
 	static int32_t speed_error_integral = 0;
 
@@ -163,19 +149,19 @@ ISR(TIMER0_OVF_vect)
 	prev_sample_position = position;
 
 	// P-term-position, with overflow protection:
-	position_error = limit_int16((int32_t) params->position_setpoint - position, MIN_position_error, MAX_position_error);
-	speed_setpoint = params->kP_position * position_error;
+	position_error = limit_int16((int32_t) params->position_setpoint - position, INT16_MIN, INT16_MAX);
+	speed_setpoint = limit_int16((int32_t) 45 * position_error, INT16_MIN, INT16_MAX);
 	
 	// P-term-speed, with overflow protection:
-	speed_error = limit_int16((int32_t) speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
-	speed_P_term = params->kP_speed * speed_error;
+	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error / (10), INT16_MIN, INT16_MAX);
 	
 	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_integral(speed_error_integral + speed_P_term, MIN_speed_error_integral, -MIN_speed_error_integral-1);
-	speed_I_term = speed_error_integral*params->TN_speed/10;
+	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term, INT16_MIN, INT16_MAX);
+	speed_I_term = limit_int16((int32_t) speed_error_integral / 1, INT16_MIN, INT16_MAX);
 	
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
+	duty_cycle = limit_int16((int32_t) speed_P_term, INT16_MIN, INT16_MAX);
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;
 	duty_cycle = duty_cycle/UINT16_MAX;
@@ -188,6 +174,11 @@ ISR(TIMER0_OVF_vect)
 	USART_send_1 = position;
 	USART_send_2 = params->position_setpoint;
 	USART_send_3 = duty_cycle_scaled;
+	
+	USART_send_4 = speed_setpoint;
+	USART_send_5 = speed;
+	USART_send_6 = speed_P_term;
+	USART_send_8 = speed_I_term;
 	
 	uint16_t new_position_setpoint = setpoint_measure();
 	params->position_setpoint = FIR_filter2(new_position_setpoint);

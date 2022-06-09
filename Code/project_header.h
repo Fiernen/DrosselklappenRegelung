@@ -38,7 +38,8 @@ struct filter_params {
 	uint16_t sum;
 };
 
-// uint8_t USART_send_status;
+
+
 uint16_t USART_send_1;
 uint16_t USART_send_2;
 uint16_t USART_send_3;

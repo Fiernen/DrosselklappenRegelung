@@ -156,9 +156,9 @@ int main(void)
 			lcd_text("Broken Wire!");
 			lcd_cmd(0xC0);
 			lcd_text("Is shutdown!");
+			while (wire_damage);
+			lcd_cmd(0x01);
 		}
-		else
-		{
 		lcd_cmd(0x80);
 		lcd_angle(Motor_ctrl_params.position_setpoint, lcd_str);
 		lcd_text(lcd_str);		
@@ -174,7 +174,7 @@ int main(void)
 		lcd_cmd(0xC7);
 		lcd_zahl_16(position,lcd_str);
 		lcd_text(lcd_str);
-		}
+		
 // 		lcd_cmd(0x87);
 // 		lcd_zahl_s16(speed_P_term,lcd_str);
 // 		lcd_text(lcd_str);

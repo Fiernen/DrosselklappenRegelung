@@ -204,7 +204,7 @@ void lcd_init()
 
 	lcd_cmd(0x06);	
 
-	lcd_cmd(0x0F);	
+	lcd_cmd(0x0C);	
 
 	lcd_cmd(0x01);
 	_delay_ms(2);

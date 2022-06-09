@@ -25,20 +25,6 @@
 
 uint8_t wire_damage;
 
-struct controller_params {
-	int16_t kP_position; // Gain
-	int16_t kP_speed; // Gain
-	int16_t TN_speed; // Integrator time constant
-	uint16_t position_setpoint;
-};
-
-struct filter_params {
-	uint16_t stack[FILTER_SIZE];
-	uint8_t increment;
-	uint16_t sum;
-};
-
-
 
 uint16_t USART_send_1;
 uint16_t USART_send_2;

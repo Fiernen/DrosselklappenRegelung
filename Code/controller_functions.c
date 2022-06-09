@@ -75,6 +75,29 @@ void check_wire_integrety(uint16_t AD2, uint16_t AD5)
 
 
 
+/* setpoint_measure() measuers a potentiometer at PC0 to change setpoint
+	
+*/
+uint16_t setpoint_measure()
+{	
+	// ADC0
+	ADMUX &= ~0b1111;
+	ADMUX |= 0b0000; // PC0
+	// Measure
+	ADCSRA |= 1<<ADSC; // Start Conversion
+	while(ADCSRA&(1<<ADSC)); // Wait for completed conversion (ADSC switches back to 0)
+	uint16_t new_setpoint = ADC;
+	// Limit to positions which can be reached by the system:
+	if (new_setpoint > ANGLE_RANGE)
+	{
+		new_setpoint = ANGLE_RANGE;
+	}
+	return new_setpoint;
+
+}
+
+
+
 /* measure() measueres the AD-values at C2 and C5 and means the values
 
 */
@@ -215,7 +238,7 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 /* Motor_controller() implements a cascading P-position-controller into PI-speed-controller
 
 */
-int16_t Motor_controller(uint16_t position, struct controller_params *params)
+uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {
 
 	int16_t speed;
@@ -224,18 +247,9 @@ int16_t Motor_controller(uint16_t position, struct controller_params *params)
 	int16_t speed_error;
 	int16_t speed_P_term;
 	int16_t speed_I_term;
-	int16_t duty_cycle;
-	int32_t duty_cycle_scaled;
-	
-	int16_t MAX_position_error = INT16_MAX/params->kP_position;
-	int16_t MIN_position_error = -INT16_MAX/params->kP_position;
-	int16_t MAX_speed_error = INT16_MAX/params->kP_speed;
-	int16_t MIN_speed_error = -INT16_MAX/params->kP_speed;
-// 	int32_t MAX_speed_error_integral = INT16_MAX/(params->TN_speed*10); // Wierd behavior line 203 changes value in unknown way, Problem not found
-	int32_t MIN_speed_error_integral = INT16_MIN/(params->TN_speed*10);
-	#define MAX_PWM_duty_cycle INT16_MAX
-	#define MIN_PWM_duty_cycle INT16_MIN // must be symmetrical for scaling
-	
+	int32_t duty_cycle;
+	uint32_t duty_cycle_scaled;
+
 	static int16_t prev_sample_position = 0;
 	static int32_t speed_error_integral = 0;
 
@@ -244,22 +258,35 @@ int16_t Motor_controller(uint16_t position, struct controller_params *params)
 	prev_sample_position = position;
 
 	// P-term-position, with overflow protection:
-	position_error = limit_int16((int32_t) params->position_setpoint - position, MIN_position_error, MAX_position_error);
-	speed_setpoint = params->kP_position * position_error;
-	
-	// P-term-speed, with overflow protection:
-	speed_error = limit_int16((int32_t) speed_setpoint - speed, MIN_speed_error, MAX_speed_error);
-	speed_P_term = params->kP_speed * speed_error;
-	
-	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_integral(speed_error_integral + speed_P_term, MIN_speed_error_integral, -MIN_speed_error_integral-1);
-	speed_I_term = speed_error_integral*params->TN_speed/10;
-	
-	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, MIN_PWM_duty_cycle, MAX_PWM_duty_cycle);
+	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
+	speed_setpoint = limit_int16((int32_t) kP_position * position_error, INT16_MIN, INT16_MAX);
 
+	// P-term-speed, with overflow protection:
+	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error / (kP_speed), INT16_MIN, INT16_MAX);
+
+	// I-term-speed, with limits/overflow protection:
+	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term, INT16_MIN, INT16_MAX);
+	speed_I_term = limit_int16((int32_t) speed_error_integral / TN_speed, INT16_MIN, INT16_MAX);
+
+	// Controller output P+I, with limits/overflow protection:
+	duty_cycle = limit_int16((int32_t) speed_P_term, INT16_MIN, INT16_MAX); // I_TERM MISSING
+
+	duty_cycle = (duty_cycle + 32767);
+	duty_cycle = duty_cycle*ICR1;
+	duty_cycle = duty_cycle/UINT16_MAX;
+	USART_send_7 = (uint16_t) duty_cycle;
+	
 	// Controller output scaling:
-	duty_cycle_scaled = ((duty_cycle + INT16_MAX)*ICR1)/UINT16_MAX; // int32 because the biggest number is 134148098)
+	duty_cycle_scaled = (uint16_t) duty_cycle;
+
+	USART_send_1 = position;
+	USART_send_2 = position_setpoint;
+	USART_send_3 = duty_cycle_scaled;
+	USART_send_4 = speed_setpoint;
+	USART_send_5 = speed;
+	USART_send_6 = speed_P_term;
+	USART_send_8 = speed_I_term;
 	
 	return duty_cycle_scaled;
 }

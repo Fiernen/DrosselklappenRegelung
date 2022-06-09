@@ -46,7 +46,7 @@ void USART_send_16(uint16_t msg)
 /* USART_send_set_is(uint16_t set, uint16_t is) sends set point and current value via USART
 	
 */
-void USART_send_set_is()
+void USART_send_set_is( uint16_t position_setpoint, uint16_t position, int16_t speed_setpoint, int16_t speed, int16_t speed_P_term, int16_t speed_I_term)
 {
 	
 	// Header:
@@ -58,50 +58,14 @@ void USART_send_set_is()
 	USART_send(100);
 	USART_send(10);
 	USART_send(110);
-	USART_send_16(USART_send_1);
-	USART_send_16(USART_send_2);
-	USART_send_16(USART_send_3);
-	USART_send_16(USART_send_4);
-	USART_send_16(USART_send_5);
-	USART_send_16(USART_send_6);
+	USART_send_16(position_setpoint);
+	USART_send_16(position);
+	USART_send_16(OCR1A);
+	USART_send_16(speed_setpoint);
+	USART_send_16(speed);
+	USART_send_16(speed_P_term);
+	USART_send_16(speed_I_term);
 	
 }
 
 
-
-// void USART_receive(void)
-// {
-// 	uint8_t dummy;
-// 	static uint8_t USART_Recieve_counter = 0;
-// 	
-// 	if (UCSRA & (1<<RXC))
-// 	{
-// 		if (UDR == 0xFF) // Check if header is send (parameters are not allowed to be 255)
-// 		{
-// 			USART_Recieve_counter = 1; // Set counter for trailing parameters
-// 			dummy = UDR; // flush latest msg
-// 
-// 		}
-// 		else
-// 		{
-// 			switch (USART_Recieve_counter) // Set parameter according to the trailing positions after the header
-// 			{
-// 				case 1: kP_position = UDR; USART_Recieve_counter++; break;
-// 				case 2: kP_speed = UDR; USART_Recieve_counter++; break;
-// 				case 3: TN_speed = UDR; USART_Recieve_counter = 0; break;
-// 				default: dummy = UDR; //flush last msg
-// 			}
-// 		}
-// 	}
-// }
-
-
-
-void USART_flush_receive(void)
-{
-	uint8_t dummy = 0;
-	while (UCSRA & (1<<RXC))  // Flush any msg in USART receive buffer
-	{
-		dummy = UDR;
-	}
-}

@@ -19,21 +19,25 @@
 #define LOW_ADC5 923
 #define HIGH_ADC5 053
 #define MEAN_AD (HIGH_ADC2+HIGH_ADC5+1)/2 // Smart rounding
-#define WIRE_TOLERANCE 10
-
-
+ #define WIRE_TOLERANCE 10
+	 
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>
 
-
 uint8_t wire_damage;
 
+struct controller_params {
+	int16_t kP_position; // Gain
+	int16_t kP_speed; // Gain
+	int16_t TN_speed; // Integrator time constant
+	int16_t position_setpoint;
+};
 
-uint16_t USART_send_1;
-uint16_t USART_send_2;
-uint16_t USART_send_3;
-uint16_t USART_send_4;
-uint16_t USART_send_5;
-uint16_t USART_send_6;
+struct filter_params {
+	uint16_t stack[FILTER_SIZE];
+	uint8_t increment;
+	uint16_t sum;
+};
+
 

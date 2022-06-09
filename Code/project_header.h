@@ -13,11 +13,11 @@
 
 
 #define	F_CPU 3686400
-#define ANGLE_RANGE 863
-#define LOW_ADC2 172+1-74-2
-#define HIGH_ADC2 960
-#define LOW_ADC5 843+3+76+1
-#define HIGH_ADC5 053
+#define LOW_ADC2 94
+#define HIGH_ADC2 970
+#define LOW_ADC5 926
+#define HIGH_ADC5 47
+#define ANGLE_RANGE LOW_ADC5 - HIGH_ADC5
 
 #include <avr/interrupt.h>
 #include <avr/io.h>

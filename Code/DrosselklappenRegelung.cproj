@@ -139,6 +139,12 @@
     <Compile Include="controller_functions.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="EEPROM_function.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="EEPROM_function.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="lcd_functions.c">
       <SubType>compile</SubType>
     </Compile>

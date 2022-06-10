@@ -17,6 +17,7 @@ Features:
 #include "controller_functions.h"
 
 
+
 uint16_t position;
 uint16_t position_setpoint;
 uint8_t kP_position = 45;
@@ -25,6 +26,25 @@ uint8_t TN_speed = 1;
 
 
 
+#include <avr/eeprom.h>
+
+uint8_t ee_kP_position EEMEM = 0;
+uint8_t ee_kP_speed EEMEM = 10;
+uint8_t ee_TN_speed EEMEM = 20;
+
+void save_ctrl_params2EEPROM(uint8_t kP_position_2_save, uint8_t kP_speed_2_save, uint8_t TN_speed_2_save)
+{
+	eeprom_update_byte(&ee_kP_position, kP_position_2_save);
+	eeprom_update_byte(&ee_kP_speed, kP_speed_2_save);
+	eeprom_update_byte(&ee_TN_speed, TN_speed_2_save);
+}
+
+void read_ctrl_params_from_EEPROM()
+{
+	kP_position = eeprom_read_byte(&ee_kP_position);
+	kP_speed = eeprom_read_byte(&ee_kP_speed);
+	TN_speed = eeprom_read_byte(&ee_TN_speed);
+}
 
 
 
@@ -48,7 +68,7 @@ int main(void)
 	TimerPWM_init();
 	TimerController_init();
 	ADConverter_init();
-
+	read_ctrl_params_from_EEPROM();
 	
 
 	
@@ -82,12 +102,24 @@ int main(void)
 		lcd_text(lcd_str);
 
 		lcd_cmd(0xC0);
-		lcd_zahl_s16(USART_send_4, lcd_str);
+		lcd_zahl(kP_speed,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC4);
+		lcd_zahl(kP_position,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC8);
+		lcd_zahl(TN_speed,lcd_str);
 		lcd_text(lcd_str);
 
-		lcd_cmd(0xC7);
-		lcd_zahl_s16(USART_send_7,lcd_str);
-		lcd_text(lcd_str);
+// 		lcd_cmd(0xC0);
+// 		lcd_zahl_s16(USART_send_4, lcd_str);
+// 		lcd_text(lcd_str);
+// 
+// 		lcd_cmd(0xC7);
+// 		lcd_zahl_s16(USART_send_7,lcd_str);
+// 		lcd_text(lcd_str);
 		
 	}
 	return 0;

@@ -78,7 +78,7 @@ void check_wire_integrety(uint16_t AD2, uint16_t AD5)
 /* setpoint_measure() measuers a potentiometer at PC0 to change setpoint
 	
 */
-uint16_t setpoint_measure()
+uint16_t setpoint_measure(void)
 {	
 	// ADC0
 	ADMUX &= ~0b1111;

@@ -6,6 +6,7 @@
 void TimerController_init();
 void ADConverter_init();
 void TimerPWM_init(void);
+uint16_t setpoint_measure(void);
 int16_t position_measure(void);
 uint16_t FIR_filter(uint16_t new_value);
 uint16_t FIR_filter2(uint16_t new_value);

@@ -19,6 +19,7 @@
 #define HIGH_ADC5 47
 #define ANGLE_RANGE (LOW_ADC5 - HIGH_ADC5 + HIGH_ADC2-LOW_ADC2) / 2
 
+#include <stdint.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>

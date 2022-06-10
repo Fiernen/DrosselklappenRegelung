@@ -26,9 +26,6 @@ uint8_t TN_speed = 1;
 
 
 
-
-
-
 /* main() initalises all components and handles not real time relevent tasks
 	
 */
@@ -63,7 +60,8 @@ int main(void)
 	{	
 		// Catch new parameters:
 		USART_receive(&kP_position, &kP_speed, &TN_speed);
-		 
+		save_ctrl_params2EEPROM(kP_position, kP_speed, TN_speed);
+		
 		// Send to PC via USART:
 		USART_send_package();
 

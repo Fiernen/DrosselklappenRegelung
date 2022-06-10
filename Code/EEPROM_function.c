@@ -1,9 +1,9 @@
 #include "project_header.h"
 #include <avr/eeprom.h>
 
-uint8_t ee_kP_position EEMEM = 0;
+uint8_t ee_kP_position EEMEM = 45;
 uint8_t ee_kP_speed EEMEM = 10;
-uint8_t ee_TN_speed EEMEM = 20;
+uint8_t ee_TN_speed EEMEM = 1;
 
 void save_ctrl_params2EEPROM(uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {

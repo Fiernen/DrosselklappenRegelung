@@ -115,6 +115,7 @@ void USART_receive(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed)
 
 void USART_flush_receive(void)
 {
+	_delay_ms(500);
 	uint8_t dummy = 0;
 	while (UCSRA & (1<<RXC))  // Flush any msg in USART receive buffer
 	{

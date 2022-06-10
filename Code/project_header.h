@@ -35,3 +35,6 @@ uint16_t USART_send_5;
 uint16_t USART_send_6;
 uint16_t USART_send_7;
 uint16_t USART_send_8;
+
+
+uint8_t debug_var;

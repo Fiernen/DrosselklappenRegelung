@@ -85,9 +85,15 @@ int main(void)
 		lcd_cmd(0x87);
 		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
-
+		
+// 		if (UCSRA & (1<<RXC))
+// 		{
+// 			lcd_cmd(0xC0);
+// 			lcd_zahl(UDR,lcd_str);
+// 			lcd_text(lcd_str);		
+// 		}
 		lcd_cmd(0xC0);
-		lcd_zahl(kP_position,lcd_str);
+ 		lcd_zahl(kP_position,lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC4);

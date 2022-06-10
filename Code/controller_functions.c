@@ -37,7 +37,7 @@ void ADConverter_init()
 */
 void TimerPWM_init(void)
 {
-	DDRB |= (1<<DDB1); // OC1A = PortB1
+	DDRB |= (1<<DDB1); // OC1A = PortB2
 	
 	TCCR1A = (1<<COM1A1)|(0<<COM1A0); // Clear OC1A on Compare Match, set OC1A at BOTTOM, (non-inverting mode)
 	

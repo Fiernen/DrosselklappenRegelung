@@ -19,10 +19,11 @@ Features:
 
 
 uint16_t position;
-uint16_t position_setpoint;
+uint16_t position_setpoint = 0;
 uint8_t kP_position = 45;
 uint8_t kP_speed = 10;
 uint8_t TN_speed = 1;
+
 
 
 
@@ -132,8 +133,39 @@ ISR(TIMER0_OVF_vect)
 	
 	OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
 
-	uint16_t new_position_setpoint = setpoint_measure();
-	position_setpoint = FIR_filter2(new_position_setpoint);
+	static uint8_t setpoint_preset_number = 0;
+	static uint8_t counter_startup_freq = 225;
+	static uint8_t startup_mode_active = 1;
+	static uint16_t startup_setpoints[4] = {200,400,600,800};
+	
+	if (startup_mode_active)
+	{
+		if (counter_startup_freq == 225)
+		{
+			position_setpoint = startup_setpoints[setpoint_preset_number];			
+			
+			// count up
+			setpoint_preset_number++;
+			if (setpoint_preset_number > 4)
+			{
+// 				setpoint_preset_number = 0;
+				startup_mode_active = 0;
+			}
+			counter_startup_freq = 0;
+		}
+		else
+		{
+			counter_startup_freq++;
+		}
+	}
+	else 
+	{
+		uint16_t new_position_setpoint = setpoint_measure();
+		position_setpoint = FIR_filter2(new_position_setpoint);
+	}
+	
+	
+	
 	
 	#if DEBUG
 		PORTB &= ~(1<<0);

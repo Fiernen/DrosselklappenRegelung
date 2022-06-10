@@ -78,6 +78,34 @@ void USART_send_package(void)
 }
 
 
+
+void USART_receive(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed)
+{
+	uint8_t dummy;
+	static uint8_t USART_Recieve_counter = 0;
+
+	while (UCSRA & (1<<RXC))
+	{
+		dummy = UDR;
+		if (dummy == 0xFF) // Check if header is send (parameters are not allowed to be 255)
+		{
+			USART_Recieve_counter = 1; // Set counter for trailing parameters
+
+		}
+		else
+		{
+			switch (USART_Recieve_counter) // Set parameter according to the trailing positions after the header
+			{
+				case 1: *kP_position = dummy; USART_Recieve_counter++; break;
+				case 2: *kP_speed = dummy; USART_Recieve_counter++; break;
+				case 3: *TN_speed = dummy; USART_Recieve_counter = 0; break;
+			}
+		}
+	}
+}
+
+
+
 void USART_flush_receive(void)
 {
 	uint8_t dummy = 0;
@@ -85,4 +113,5 @@ void USART_flush_receive(void)
 	{
 		dummy = UDR;
 	}
+	return;
 }

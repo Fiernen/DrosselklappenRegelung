@@ -46,6 +46,7 @@ int main(void)
 	PORTB |= 1<<PB5; // Disable power electronics
 	lcd_init();
 	USART_init();
+	USART_flush_receive();
 	TimerPWM_init();
 	TimerController_init();
 	ADConverter_init();
@@ -59,7 +60,10 @@ int main(void)
 
 	// Main Loop:
 	while(1)
-	{		
+	{	
+		// Catch new parameters:
+		USART_receive(&kP_position, &kP_speed, &TN_speed);
+		 
 		// Send to PC via USART:
 		USART_send_package();
 
@@ -83,11 +87,11 @@ int main(void)
 		lcd_text(lcd_str);
 
 		lcd_cmd(0xC0);
-		lcd_zahl(kP_speed,lcd_str);
+		lcd_zahl(kP_position,lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC4);
-		lcd_zahl(kP_position,lcd_str);
+		lcd_zahl(kP_speed,lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC8);

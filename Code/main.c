@@ -45,14 +45,12 @@ int main(void)
 	DDRB |= 1<<PB5; // Enable signal port
 	PORTB |= 1<<PB5; // Disable power electronics
 	lcd_init();
-	USART_init();
-	USART_flush_receive();
 	TimerPWM_init();
 	TimerController_init();
 	ADConverter_init();
 	read_ctrl_params_from_EEPROM(&kP_position, &kP_speed, &TN_speed);
+	USART_init();
 	
-
 	sei(); // Enable interrupts
 	PORTB &= ~(1<<PB5); // Enable power electronics
 	
@@ -100,7 +98,7 @@ int main(void)
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0x89);
-		lcd_angle(position_setpoint,lcd_str);
+		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC0);
@@ -182,6 +180,7 @@ ISR(TIMER0_OVF_vect)
 			{
 // 				setpoint_preset_number = 0;
 				startup_mode_active = 0;
+				
 			}
 			counter_startup_freq = 0;
 		}

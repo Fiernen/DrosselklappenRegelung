@@ -116,11 +116,27 @@ void USART_receive(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed)
 // 			}
 // 		}
 // 	}
+	static uint8_t msg_incoming = 0;
 	if (UCSRA & (1<<RXC))
 	{
-		*kP_position = UDR;
-		*kP_speed = UDR;
-		*TN_speed = UDR;
+		if (msg_incoming)
+		{
+			*kP_position = UDR;
+			*kP_speed = UDR;
+			*TN_speed = UDR;
+			msg_incoming = 0;
+		}
+		else
+		{
+			uint8_t header0 = UDR;
+			uint8_t header1 = UDR;
+			uint8_t header2 = UDR;
+
+			if (header0 == 255 && header1 == 50 && header2 == 100)
+			{
+				msg_incoming = 1;
+			}
+		}
 	}
 }
 

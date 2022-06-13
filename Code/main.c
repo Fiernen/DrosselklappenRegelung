@@ -21,7 +21,7 @@ Features:
 uint16_t position;
 uint16_t position_setpoint = 0;
 uint8_t kP_position = 45;
-uint8_t kP_speed = 10;
+uint8_t kP_speed = 15;
 uint8_t TN_speed = 1;
 
 
@@ -74,7 +74,15 @@ int main(void)
 			lcd_text("Broken Wire!");
 			lcd_cmd(0xC0);
 			lcd_text("Is shutdown!");
-			while (wire_damage);
+			while (wire_damage)
+			{
+				// Catch new parameters:
+				USART_receive(&kP_position, &kP_speed, &TN_speed);
+				save_ctrl_params2EEPROM(kP_position, kP_speed, TN_speed);
+		
+				// Send to PC via USART:
+				USART_send_package();
+			}
 			lcd_cmd(0x01);
 		}
 		lcd_cmd(0x80);
@@ -92,16 +100,16 @@ int main(void)
 // 			lcd_text(lcd_str);		
 // 		}
 		lcd_cmd(0xC0);
- 		lcd_zahl(kP_position,lcd_str);
+ 		lcd_zahl_s16(USART_send_8,lcd_str);
 		lcd_text(lcd_str);
 		
-		lcd_cmd(0xC4);
-		lcd_zahl(kP_speed,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC8);
-		lcd_zahl(TN_speed,lcd_str);
-		lcd_text(lcd_str);
+// 		lcd_cmd(0xC4);
+// 		lcd_zahl(kP_speed,lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xC8);
+// 		lcd_zahl(TN_speed,lcd_str);
+// 		lcd_text(lcd_str);
 
 // 		lcd_cmd(0xC0);
 // 		lcd_zahl_s16(USART_send_4, lcd_str);

@@ -3,7 +3,7 @@
 // #define PROJECT_HEADER_H_
 
 
-
+#define STARTUP_MODE 0
 #define DEBUG 1
 #define TEST 1
 #define MEASURE_IMPULSE_RESP 0

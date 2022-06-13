@@ -7,6 +7,10 @@
 // #include "controller_functions.h"
 
 
+
+
+
+
 /* TimerController_init() initialises the Timer/Counter 1 for controller interrupt
 	Timer 0 for measuring and controller calculation:
 */
@@ -240,7 +244,11 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 */
 uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {
-
+// 	position = 100;
+// 	position_setpoint = 200;
+// 	kP_position = 45;
+// 	kP_speed = 10;
+// 	TN_speed = 2;
 	int16_t speed;
 	int16_t position_error;
 	int16_t speed_setpoint;
@@ -252,6 +260,8 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	static int16_t prev_sample_position = 0;
 	static int32_t speed_error_integral = 0;
+	
+	
 
 	// D-Term-speed;
 	speed = (position-prev_sample_position); // derivative
@@ -267,10 +277,14 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	// I-term-speed, with limits/overflow protection:
 	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term, INT16_MIN, INT16_MAX);
+	if (wire_damage)
+	{
+		speed_error_integral = 0;
+	}
 	speed_I_term = limit_int16((int32_t) speed_error_integral / TN_speed, INT16_MIN, INT16_MAX);
 
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term, INT16_MIN, INT16_MAX); // I_TERM MISSING
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX);
 
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;

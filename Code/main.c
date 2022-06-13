@@ -99,17 +99,21 @@ int main(void)
 // 			lcd_zahl(UDR,lcd_str);
 // 			lcd_text(lcd_str);		
 // 		}
-		lcd_cmd(0xC0);
- 		lcd_zahl_s16(USART_send_8,lcd_str);
-		lcd_text(lcd_str);
-		
-// 		lcd_cmd(0xC4);
-// 		lcd_zahl(kP_speed,lcd_str);
+// 		lcd_cmd(0xC0);
+// 		lcd_zahl_s16(USART_send_8,lcd_str);
 // 		lcd_text(lcd_str);
 // 		
-// 		lcd_cmd(0xC8);
-// 		lcd_zahl(TN_speed,lcd_str);
-// 		lcd_text(lcd_str);
+		lcd_cmd(0xC0);
+		lcd_zahl(kP_position,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC4);
+		lcd_zahl(kP_speed,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC8);
+		lcd_zahl(TN_speed,lcd_str);
+		lcd_text(lcd_str);
 
 // 		lcd_cmd(0xC0);
 // 		lcd_zahl_s16(USART_send_4, lcd_str);
@@ -180,3 +184,5 @@ ISR(TIMER0_OVF_vect)
 	#endif
 
 }
+
+

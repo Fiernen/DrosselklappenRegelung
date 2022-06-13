@@ -59,7 +59,7 @@ void lcd_zahl_16(uint16_t num, char* written)
 */
 void lcd_angle(uint32_t num, char* written)
 {
-	num = num*10*90/863; // scale
+	num = num*10*90/ANGLE_RANGE; // scale
 
 	uint16_t devisor;
 	uint8_t digit;

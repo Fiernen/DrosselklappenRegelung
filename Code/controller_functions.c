@@ -297,10 +297,10 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	USART_send_1 = position;
 	USART_send_2 = position_setpoint;
 	USART_send_3 = duty_cycle_scaled;
-	USART_send_4 = speed_setpoint;
-	USART_send_5 = speed;
-	USART_send_6 = speed_P_term;
-	USART_send_8 = speed_I_term;
+// 	USART_send_4 = speed_setpoint;
+// 	USART_send_5 = speed;
+// 	USART_send_6 = speed_P_term;
+// 	USART_send_8 = speed_I_term;
 	
 	return duty_cycle_scaled;
 }

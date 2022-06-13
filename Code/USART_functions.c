@@ -60,8 +60,8 @@ void USART_send_package(void)
 	
 	// Header:
 	USART_send(255);
-	USART_send(0);
-	USART_send(100);
+	USART_send(1);
+	USART_send(101);
 	
 	// Data:
 	USART_send_16(USART_send_1);

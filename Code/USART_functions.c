@@ -62,18 +62,16 @@ void USART_send_package(void)
 	USART_send(255);
 	USART_send(0);
 	USART_send(100);
-	USART_send(10);
-	USART_send(110);
 	
 	// Data:
 	USART_send_16(USART_send_1);
 	USART_send_16(USART_send_2);
 	USART_send_16(USART_send_3);
-	USART_send_16(USART_send_4);
-	USART_send_16(USART_send_5);
-	USART_send_16(USART_send_6);
-	USART_send_16(USART_send_7);
-	USART_send_16(USART_send_8);
+// 	USART_send_16(USART_send_4);
+// 	USART_send_16(USART_send_5);
+// 	USART_send_16(USART_send_6);
+// 	USART_send_16(USART_send_7);
+// 	USART_send_16(USART_send_8);
 	
 }
 

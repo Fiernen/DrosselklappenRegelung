@@ -38,6 +38,7 @@ int main(void)
 	#if DEBUG
 		DDRB |= 1<<DDB0;
 		DDRB |= 1<<DDB2;
+		DDRB |= 1<<DDB3;
 	#endif
 	
 	// Initialization:
@@ -65,7 +66,13 @@ int main(void)
 		save_ctrl_params2EEPROM(kP_position, kP_speed, TN_speed);
 		
 		// Send to PC via USART:
+		#if DEBUG
+		PORTB |= 1<<3; // Time measure
+		#endif
 		USART_send_package();
+		#if DEBUG
+		PORTB &= ~(1<<3);
+		#endif
 
 		// Write to LCD-display:
 		if (wire_damage)

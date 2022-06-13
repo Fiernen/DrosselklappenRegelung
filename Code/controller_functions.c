@@ -277,10 +277,10 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	// I-term-speed, with limits/overflow protection:
 	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term, INT16_MIN, INT16_MAX);
-	if (wire_damage)
-	{
-		speed_error_integral = 0;
-	}
+// 	if (wire_damage)
+// 	{
+// 		speed_error_integral = 0;
+// 	}
 	speed_I_term = limit_int16((int32_t) speed_error_integral / TN_speed, INT16_MIN, INT16_MAX);
 
 	// Controller output P+I, with limits/overflow protection:

@@ -37,6 +37,7 @@ int main(void)
 
 	#if DEBUG
 		DDRB |= 1<<DDB0;
+		DDRB |= 1<<DDB2;
 	#endif
 	
 	// Initialization:
@@ -85,43 +86,36 @@ int main(void)
 			}
 			lcd_cmd(0x01);
 		}
-		lcd_cmd(0x80);
-		lcd_angle(position_setpoint, lcd_str);
-		lcd_text(lcd_str);		
+
 		
-		lcd_cmd(0x87);
+		
+		/* Display angles */
+		lcd_cmd(0x80);
+// 		lcd_text('Soll: ');
+		lcd_angle(position_setpoint, lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC0);
+// 		lcd_text(' Ist: ');
 		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
 		
-// 		if (UCSRA & (1<<RXC))
-// 		{
-// 			lcd_cmd(0xC0);
-// 			lcd_zahl(UDR,lcd_str);
-// 			lcd_text(lcd_str);		
-// 		}
-// 		lcd_cmd(0xC0);
-// 		lcd_zahl_s16(USART_send_8,lcd_str);
+		/* Display controller parameters: */
+// 		lcd_cmd(0x80);
+// 		lcd_text('kP_p: ');
+// 		lcd_zahl(kP_position,lcd_str);
 // 		lcd_text(lcd_str);
 // 		
-		lcd_cmd(0xC0);
-		lcd_zahl(kP_position,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC4);
-		lcd_zahl(kP_speed,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC8);
-		lcd_zahl(TN_speed,lcd_str);
-		lcd_text(lcd_str);
-
 // 		lcd_cmd(0xC0);
-// 		lcd_zahl_s16(USART_send_4, lcd_str);
+// 		lcd_text('kP_s: ');
+// 		lcd_zahl(kP_speed,lcd_str);
 // 		lcd_text(lcd_str);
-// 
-// 		lcd_cmd(0xC7);
-// 		lcd_zahl_s16(USART_send_7,lcd_str);
+// 		
+// 		lcd_cmd(0xC8);
+// 		lcd_text('kP_p: ');
+// 		lcd_zahl(TN_speed,lcd_str);
 // 		lcd_text(lcd_str);
+
 		
 	}
 	return 0;

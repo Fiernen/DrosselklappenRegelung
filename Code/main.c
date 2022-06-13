@@ -53,7 +53,6 @@ int main(void)
 	read_ctrl_params_from_EEPROM(&kP_position, &kP_speed, &TN_speed);
 	
 
-	
 	sei(); // Enable interrupts
 	PORTB &= ~(1<<PB5); // Enable power electronics
 	
@@ -95,17 +94,37 @@ int main(void)
 		}
 
 		
-		
-		/* Display angles */
+		/* Display angles and ctrl paras */
 		lcd_cmd(0x80);
-// 		lcd_text('Soll: ');
-		lcd_angle(position_setpoint, lcd_str);
+		lcd_angle(position_setpoint,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0x89);
+		lcd_angle(position_setpoint,lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC0);
-// 		lcd_text(' Ist: ');
-		lcd_angle(position,lcd_str);
+		lcd_zahl(kP_position,lcd_str);
 		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC4);
+		lcd_zahl(kP_speed,lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC8);
+		lcd_zahl(TN_speed,lcd_str);
+		lcd_text(lcd_str);
+				
+		/* Display angles */
+// 		lcd_cmd(0x80);
+// // 		lcd_text('Soll: ');
+// 		lcd_angle(position_setpoint, lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xC0);
+// // 		lcd_text(' Ist: ');
+// 		lcd_angle(position,lcd_str);
+// 		lcd_text(lcd_str);
 		
 		/* Display controller parameters: */
 // 		lcd_cmd(0x80);

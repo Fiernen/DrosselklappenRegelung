@@ -115,12 +115,14 @@ int main(void)
 				
 		/* Display angles */
 // 		lcd_cmd(0x80);
-// // 		lcd_text('Soll: ');
+// 		lcd_text("Sollwert:");
+// 		lcd_cmd(0x8A);
 // 		lcd_angle(position_setpoint, lcd_str);
 // 		lcd_text(lcd_str);
 // 		
 // 		lcd_cmd(0xC0);
-// // 		lcd_text(' Ist: ');
+// 		lcd_text("Istwert :");
+// 		lcd_cmd(0xCA);
 // 		lcd_angle(position,lcd_str);
 // 		lcd_text(lcd_str);
 		

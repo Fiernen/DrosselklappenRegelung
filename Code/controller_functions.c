@@ -269,11 +269,11 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	// P-term-position, with overflow protection:
 	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
-	speed_setpoint = limit_int16((int32_t) kP_position * position_error, INT16_MIN, INT16_MAX);
-
+	speed_setpoint = limit_int16((int32_t) position_error / 100 * kP_position, INT16_MIN, INT16_MAX);
+	
 	// P-term-speed, with overflow protection:
 	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
-	speed_P_term = limit_int16((int32_t) speed_error / (kP_speed), INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error * 10 * kP_speed, INT16_MIN, INT16_MAX);
 
 	// I-term-speed, with limits/overflow protection:
 	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term, INT16_MIN, INT16_MAX);
@@ -299,7 +299,7 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	USART_send_3 = duty_cycle_scaled;
 // 	USART_send_4 = speed_setpoint;
 // 	USART_send_5 = speed;
-// 	USART_send_6 = speed_P_term;
+	USART_send_6 = speed_P_term;
 // 	USART_send_8 = speed_I_term;
 	
 	return duty_cycle_scaled;

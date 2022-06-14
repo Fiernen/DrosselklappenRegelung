@@ -112,6 +112,10 @@ int main(void)
 		lcd_cmd(0xC8);
 		lcd_zahl(TN_speed,lcd_str);
 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0x85);
+// 		lcd_zahl_s16(USART_send_6 ,lcd_str);
+// 		lcd_text(lcd_str);
 				
 		/* Display angles */
 // 		lcd_cmd(0x80);

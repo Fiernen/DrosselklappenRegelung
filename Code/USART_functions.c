@@ -69,7 +69,7 @@ void USART_send_package(void)
 	USART_send_16(USART_send_3);
 // 	USART_send_16(USART_send_4);
 // 	USART_send_16(USART_send_5);
-// 	USART_send_16(USART_send_6);
+	USART_send_16(USART_send_6);
 // 	USART_send_16(USART_send_7);
 // 	USART_send_16(USART_send_8);
 	

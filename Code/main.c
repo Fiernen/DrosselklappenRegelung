@@ -93,30 +93,28 @@ int main(void)
 
 		
 		/* Display angles and ctrl paras */
-		lcd_cmd(0x80);
-		lcd_angle(position_setpoint,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0x89);
-		lcd_angle(position,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC0);
-		lcd_zahl(kP_position,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC4);
-		lcd_zahl(kP_speed,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC8);
-		lcd_zahl(TN_speed,lcd_str);
-		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0x85);
-// 		lcd_zahl_s16(USART_send_6 ,lcd_str);
+// 		lcd_cmd(0x80);
+// 		lcd_angle(position_setpoint,lcd_str);
 // 		lcd_text(lcd_str);
-				
+// 		
+// 		lcd_cmd(0x89);
+// 		lcd_angle(position,lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xC0);
+// 		lcd_zahl(kP_position,lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xC4);
+// 		lcd_zahl(kP_speed,lcd_str);
+// 		lcd_text(lcd_str);
+// 		
+// 		lcd_cmd(0xC8);
+// 		lcd_zahl(TN_speed,lcd_str);
+// 		lcd_text(lcd_str);
+
+
+			
 		/* Display angles */
 // 		lcd_cmd(0x80);
 // 		lcd_text("Sollwert:");
@@ -130,23 +128,41 @@ int main(void)
 // 		lcd_angle(position,lcd_str);
 // 		lcd_text(lcd_str);
 		
-		/* Display controller parameters: */
+		
+		
+// 		/* Display controller parameters: */
 // 		lcd_cmd(0x80);
 // 		lcd_text('kP_p: ');
-// 		lcd_zahl(kP_position,lcd_str);
+// 		lcd_zahl(kP_position,lcd_str); // kP_position
 // 		lcd_text(lcd_str);
 // 		
 // 		lcd_cmd(0xC0);
 // 		lcd_text('kP_s: ');
-// 		lcd_zahl(kP_speed,lcd_str);
+// 		lcd_zahl(kP_speed,lcd_str); // kP_speed
 // 		lcd_text(lcd_str);
 // 		
 // 		lcd_cmd(0xC8);
 // 		lcd_text('kP_p: ');
-// 		lcd_zahl(TN_speed,lcd_str);
+// 		lcd_zahl(TN_speed,lcd_str); // TN_speed
 // 		lcd_text(lcd_str);
+		
+		
+		
+		/* Display controller parameters: */
+		lcd_cmd(0x80);
+		lcd_zahl_s16(USART_send_4,lcd_str); // P-Position-Term
+		lcd_text(lcd_str);
+				
+		lcd_cmd(0xC0);
+		lcd_zahl_s16(USART_send_6,lcd_str); // P-Speed-Term
+		lcd_text(lcd_str);
+				
+		lcd_cmd(0xC8);
+		lcd_zahl_s16(USART_send_8,lcd_str); // I-Speed-Term
+		lcd_text(lcd_str);
 
 		
+
 	}
 	return 0;
 }

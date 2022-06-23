@@ -53,7 +53,7 @@ void TimerPWM_init(void)
 		The Frequency of the PWM signal is 225 Hz. F_PWM = F_CPU/(N*(TOP+1))
 		Generally aim for low prescaler N and high TOP-value for better accuracy */
 	ICR1 = 0x07FF; // TOP-value 11 bit
-	TCCR1B |= (0<<CS12)|(0<<CS11)|(1<<CS10); // Prescaler N = 8
+	TCCR1B |= (0<<CS12)|(0<<CS11)|(1<<CS10); // Prescaler N = 1
 	
 	OCR1A = ICR1/2; // Set default duty cycle to 50%
 }
@@ -272,19 +272,19 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	
 	// P-term-speed, with overflow protection:
 	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
-	speed_P_term = limit_int16((int32_t) speed_error * kP_speed, INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error * 8 * kP_speed, INT16_MIN, INT16_MAX);
 
 	// I-term-speed, with limits/overflow protection:
 	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term/TN_speed, INT16_MIN, INT16_MAX);
-// 	if (wire_damage)
-// 	{
-// 		speed_error_integral = 0;
-// 	}
+	if (wire_damage)
+	{
+		speed_error_integral = 0;
+	}
 // 	speed_I_term = limit_int16((int32_t) speed_error_integral, INT16_MIN, INT16_MAX);
 	speed_I_term = speed_error_integral;
 
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX);
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX); //  
 
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;

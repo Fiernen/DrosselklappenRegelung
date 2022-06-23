@@ -63,14 +63,17 @@ void USART_send_package(void)
 	USART_send(1);
 	USART_send(101);
 	
-	// Data:
+	/* Send Data: */
 	USART_send_16(USART_send_1);
 	USART_send_16(USART_send_2);
 	USART_send_16(USART_send_3);
+	USART_send_16(USART_send_5);
+	USART_send_16(USART_send_7);
+	
+	
+	/* Send Controller Terms: */
 // 	USART_send_16(USART_send_4);
-// 	USART_send_16(USART_send_5);
-	USART_send_16(USART_send_6);
-// 	USART_send_16(USART_send_7);
+// 	USART_send_16(USART_send_6);
 // 	USART_send_16(USART_send_8);
 	
 }

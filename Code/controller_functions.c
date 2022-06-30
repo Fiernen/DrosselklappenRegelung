@@ -272,24 +272,25 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	
 	// P-term-speed, with overflow protection:
 	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
-	speed_P_term = limit_int16((int32_t) speed_error * 8 * kP_speed, INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error * kP_speed, (int16_t) -(ICR1/2), (int16_t) ICR1/2);
 
 	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term/TN_speed, INT16_MIN, INT16_MAX);
+	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term * TN_speed / 8, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
 	if (wire_damage)
 	{
 		speed_error_integral = 0;
 	}
-// 	speed_I_term = limit_int16((int32_t) speed_error_integral, INT16_MIN, INT16_MAX);
+// 	speed_I_term = limit_int16((int32_t) speed_error_integral / TN_speed, (int16_t) -(ICR1/2), (int16_t) ICR1/2);
 	speed_I_term = speed_error_integral;
 
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX); //  
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, (int16_t) -(ICR1/2), (int16_t) ICR1/2); //  
 	USART_send_duty_cycle = (int16_t) duty_cycle;
 
-	duty_cycle = (duty_cycle + 32767);
-	duty_cycle = duty_cycle*ICR1;
-	duty_cycle = duty_cycle/UINT16_MAX;
+	duty_cycle = (duty_cycle + ICR1/2);
+	//duty_cycle = (duty_cycle + 32767);
+	//duty_cycle = duty_cycle*ICR1;
+	//duty_cycle = duty_cycle/UINT16_MAX;
 	
 	
 	// Controller output scaling:

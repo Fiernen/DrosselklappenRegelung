@@ -178,8 +178,13 @@ ISR(TIMER0_OVF_vect)
 	#if DEBUG
 		PORTB |= 1<<0; // Time measure 
 	#endif
-
+	
 	position = position_measure();
+	
+	#if DEBUG
+	PORTB &= ~(1<<0);
+	#endif
+	
 	USART_send_speed_setpoint = position;
 	position = FIR_filter(position);
 	
@@ -220,9 +225,7 @@ ISR(TIMER0_OVF_vect)
 	
 	
 	
-	#if DEBUG
-		PORTB &= ~(1<<0);
-	#endif
+
 
 }
 

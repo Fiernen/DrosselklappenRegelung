@@ -27,14 +27,14 @@
 uint8_t wire_damage;
 
 
-uint16_t USART_send_1;
-uint16_t USART_send_2;
-uint16_t USART_send_3;
-uint16_t USART_send_4;
-uint16_t USART_send_5;
-uint16_t USART_send_6;
-uint16_t USART_send_7;
-uint16_t USART_send_8;
+uint16_t USART_send_position;
+uint16_t USART_send_position_setpoint;
+uint16_t USART_send_duty_cycle_scaled;
+uint16_t USART_send_speed_setpoint;
+uint16_t USART_send_speed;
+uint16_t USART_send_speed_P_term;
+uint16_t USART_send_duty_cycle;
+uint16_t USART_send_speed_I_term;
 
 
 uint8_t debug_var;

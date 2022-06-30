@@ -150,15 +150,15 @@ int main(void)
 		
 		/* Display controller parameters: */
 		lcd_cmd(0x80);
-		lcd_zahl_s16(USART_send_4,lcd_str); // P-Position-Term
+		lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
 		lcd_text(lcd_str);
 				
 		lcd_cmd(0xC0);
-		lcd_zahl_s16(USART_send_6,lcd_str); // P-Speed-Term
+		lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
 		lcd_text(lcd_str);
 				
 		lcd_cmd(0xC8);
-		lcd_zahl_s16(USART_send_8,lcd_str); // I-Speed-Term
+		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
 		lcd_text(lcd_str);
 
 		
@@ -180,7 +180,7 @@ ISR(TIMER0_OVF_vect)
 	#endif
 
 	position = position_measure();
-	USART_send_4 = position;
+	USART_send_speed_setpoint = position;
 	position = FIR_filter(position);
 	
 	OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);

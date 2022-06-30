@@ -285,22 +285,24 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	// Controller output P+I, with limits/overflow protection:
 	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX); //  
+	USART_send_duty_cycle = (int16_t) duty_cycle;
 
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;
 	duty_cycle = duty_cycle/UINT16_MAX;
-	USART_send_7 = (uint16_t) duty_cycle;
+	
 	
 	// Controller output scaling:
 	duty_cycle_scaled = (uint16_t) duty_cycle;
 
-	USART_send_1 = position;
-	USART_send_2 = position_setpoint;
-	USART_send_3 = duty_cycle_scaled;
-	USART_send_4 = speed_setpoint;
-	USART_send_5 = speed;
-	USART_send_6 = speed_P_term;
-	USART_send_8 = speed_I_term;
+	USART_send_position = position;
+	USART_send_position_setpoint = position_setpoint;
+	USART_send_duty_cycle_scaled = duty_cycle_scaled;
+	USART_send_speed_setpoint = speed_setpoint;
+	USART_send_speed = speed;
+	USART_send_speed_P_term = speed_P_term;
+	USART_send_speed_I_term = speed_I_term;
+	
 	
 	return duty_cycle_scaled;
 }

@@ -12,14 +12,14 @@ void USART_init(void)
 	UCSRB = (1<<RXEN)|(1<<TXEN); // Enable receive and send
 	UCSRC = (1<<URSEL)|(1<<UCSZ1)|(1<<UCSZ0); // 8 data bits
 	
-	USART_send_1 = 0;
-	USART_send_2 = 0;
-	USART_send_3 = 0;
-	USART_send_4 = 0;
-	USART_send_5 = 0;
-	USART_send_6 = 0;
-	USART_send_7 = 0;
-	USART_send_8 = 0;
+	USART_send_position = 0;
+	USART_send_position_setpoint = 0;
+	USART_send_duty_cycle_scaled = 0;
+	USART_send_speed_setpoint = 0;
+	USART_send_speed = 0;
+	USART_send_speed_P_term = 0;
+	USART_send_duty_cycle = 0;
+	USART_send_speed_I_term = 0;
 }
 
 
@@ -47,7 +47,7 @@ void USART_send_16(uint16_t msg)
 	UDR = msg & 0xFF; // Low 8 bits
 	
 	while (!(UCSRA & (1<<UDRE)));
-	UDR = msg>>8; // High 8 bits
+	UDR = msg >> 8; // High 8 bits
 }
 
 
@@ -63,19 +63,22 @@ void USART_send_package(void)
 	USART_send(1);
 	USART_send(101);
 	
-	/* Send Data: */
-	USART_send_16(USART_send_1);
-	USART_send_16(USART_send_2);
-	USART_send_16(USART_send_3);
-	USART_send_16(USART_send_5);
-	USART_send_16(USART_send_7);
+// 	/* Send Data: */
+// 	USART_send_16(USART_send_position);
+// 	USART_send_16(USART_send_position_setpoint);
+// 	USART_send_16(USART_send_duty_cycle);
 	
+	/* Send unsigned int */
+	USART_send_16(USART_send_position);
+	USART_send_16(USART_send_position_setpoint);
+	USART_send_16(USART_send_duty_cycle_scaled);
 	
-	/* Send Controller Terms: */
-// 	USART_send_16(USART_send_4);
-// 	USART_send_16(USART_send_6);
-// 	USART_send_16(USART_send_8);
-	
+	/* Send signed int */
+	USART_send_16(USART_send_speed);
+	USART_send_16(USART_send_speed_setpoint);
+	USART_send_16(USART_send_speed_P_term);
+	USART_send_16(USART_send_speed_I_term);
+	USART_send_16(USART_send_duty_cycle);
 }
 
 

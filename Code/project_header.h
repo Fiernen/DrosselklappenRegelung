@@ -2,6 +2,9 @@
 // #ifndef PROJECT_HEADER_H_
 // #define PROJECT_HEADER_H_
 
+#define default_kP_position 64
+#define default_kP_speed 64
+#define default_kP_TN_speed 95
 
 #define STARTUP_MODE 0
 #define DEBUG 1
@@ -35,6 +38,6 @@ uint16_t USART_send_speed;
 uint16_t USART_send_speed_P_term;
 uint16_t USART_send_duty_cycle;
 uint16_t USART_send_speed_I_term;
-
+uint8_t USART_transmission_complete;
 
 uint8_t debug_var;

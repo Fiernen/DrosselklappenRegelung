@@ -79,6 +79,8 @@ void USART_send_package(void)
 	USART_send_16(USART_send_speed_P_term);
 	USART_send_16(USART_send_speed_I_term);
 	USART_send_16(USART_send_duty_cycle);
+	
+	USART_transmission_complete = 1;
 }
 
 

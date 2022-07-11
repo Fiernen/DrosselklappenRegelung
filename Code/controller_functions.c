@@ -250,11 +250,7 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 */
 uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {
-// 	position = 100;
-// 	position_setpoint = 200;
-// 	kP_position = 45;
-// 	kP_speed = 10;
-// 	TN_speed = 2;
+
 	int16_t speed;
 	int16_t position_error;
 	int16_t speed_setpoint;
@@ -281,7 +277,7 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	speed_P_term = limit_int16((int32_t) speed_error * kP_speed, (int16_t) -(ICR1/2), (int16_t) ICR1/2);
 
 	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_integral((int32_t) speed_error_integral + speed_P_term * TN_speed / 8, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+	speed_error_integral = limit_integral((int32_t) speed_error_integral + ((speed_P_term * TN_speed)/ 64), (int32_t) INT16_MIN, (int32_t) INT16_MAX);
 	if (wire_damage)
 	{
 		speed_error_integral = 0;

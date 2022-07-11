@@ -263,21 +263,22 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	static int16_t prev_sample_position = 0;
 	static int32_t speed_error_integral = 0;
 		
-
+	// P-term-position, with overflow protection:
+	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
+	speed_setpoint = limit_int16((int32_t) position_error * kP_position / 16, INT16_MIN, INT16_MAX);
+	
 	// D-Term-speed;
 	speed = (position-prev_sample_position); // derivative
 	prev_sample_position = position;
 
-	// P-term-position, with overflow protection:
-	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
-	speed_setpoint = limit_int16((int32_t) position_error * kP_position, INT16_MIN, INT16_MAX);
-	
 	// P-term-speed, with overflow protection:
 	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
-	speed_P_term = limit_int16((int32_t) speed_error * kP_speed, (int16_t) -(ICR1/2), (int16_t) ICR1/2);
+	speed_P_term = limit_int16((int32_t) speed_error * kP_speed / 16, (int16_t) INT16_MIN, (int16_t) INT16_MAX);
 
 	// I-term-speed, with limits/overflow protection:
-	speed_error_integral = limit_integral((int32_t) speed_error_integral + ((speed_P_term * TN_speed)/ 64), (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+	int32_t next_add = (int32_t) speed_P_term * TN_speed;
+	next_add = (int32_t) next_add / 16384;
+	speed_error_integral = limit_integral((int32_t) speed_error_integral + next_add, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
 	if (wire_damage)
 	{
 		speed_error_integral = 0;
@@ -286,13 +287,12 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	speed_I_term = speed_error_integral;
 
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, (int16_t) -(ICR1/2), (int16_t) ICR1/2); //  
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX); //  
 	USART_send_duty_cycle = (int16_t) duty_cycle;
 
-	duty_cycle = (duty_cycle + ICR1/2);
-	//duty_cycle = (duty_cycle + 32767);
-	//duty_cycle = duty_cycle*ICR1;
-	//duty_cycle = duty_cycle/UINT16_MAX;
+	duty_cycle = (duty_cycle + 32767);
+	duty_cycle = duty_cycle*ICR1;
+	duty_cycle = duty_cycle/UINT16_MAX;
 	
 	
 	// Controller output scaling:

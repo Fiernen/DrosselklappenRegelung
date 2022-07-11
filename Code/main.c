@@ -191,7 +191,7 @@ ISR(TIMER2_COMP_vect)
 	OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
 
 	static uint8_t setpoint_preset_number = 0;
-	static uint8_t counter_startup_freq = 225;
+	static uint16_t counter_startup_freq = 900;
 	static uint8_t startup_mode_active = 1;
 	static uint16_t startup_setpoints[4] = {200,400,600,800};
 	

@@ -172,7 +172,7 @@ int main(void)
 /* ISR(TIMER0_OVF_vect) is a interrupt which is triggered by a timer 0 overflow.
 
 */
-ISR(TIMER0_OVF_vect)
+ISR(TIMER2_COMP_vect)
 {
 
 	#if DEBUG

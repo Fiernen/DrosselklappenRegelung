@@ -16,8 +16,14 @@
 */
 void TimerController_init()
 {
-	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms / sample freq 225 Hz
-	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow		
+// 	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms, sample freq 225 Hz
+// 	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow		
+
+	TCCR2 = (1<<FOC2) | (1<<WGM21) | (0<<WGM20); // Force Output Compare and CTC Mode
+	TCCR2 |= (0<<CS22) | (1<<CS21) | (1<<CS20); // Prescaler
+	TIMSK |= (1<<OCIE2); // Interrupt on compare match
+	OCR2 =  0x7F;
+	
 }
 
 
@@ -30,7 +36,7 @@ void ADConverter_init()
 	ADMUX = (0<<REFS1) | (1<<REFS0); // Internal voltage reference
 	ADMUX |= 0<<ADLAR; // write right sided
 	ADCSRA |= 1<<ADEN; // Enable
-	ADCSRA |=  (1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0); // Prescaler = 64
+	ADCSRA |=  (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0); // Prescaler
 	
 }
 
@@ -50,7 +56,7 @@ void TimerPWM_init(void)
 	TCCR1B  = (1<<WGM13)|(1<<WGM12);
 	
 	/* Set Frequency:
-		The Frequency of the PWM signal is 225 Hz. F_PWM = F_CPU/(N*(TOP+1))
+		The Frequency of the PWM signal is F_PWM = F_CPU/(N*(TOP+1))
 		Generally aim for low prescaler N and high TOP-value for better accuracy */
 	ICR1 = 0x07FF; // TOP-value 11 bit
 	TCCR1B |= (0<<CS12)|(0<<CS11)|(1<<CS10); // Prescaler N = 1

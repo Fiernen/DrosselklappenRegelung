@@ -116,17 +116,17 @@ int main(void)
 
 			
 		/* Display angles */
-// 		lcd_cmd(0x80);
-// 		lcd_text("Sollwert:");
-// 		lcd_cmd(0x8A);
-// 		lcd_angle(position_setpoint, lcd_str);
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0xC0);
-// 		lcd_text("Istwert :");
-// 		lcd_cmd(0xCA);
-// 		lcd_angle(position,lcd_str);
-// 		lcd_text(lcd_str);
+		lcd_cmd(0x80);
+		lcd_text("Sollwert:");
+		lcd_cmd(0x8A);
+		lcd_angle(USART_send_position_setpoint, lcd_str);
+		lcd_text(lcd_str);
+		
+		lcd_cmd(0xC0);
+		lcd_text("Istwert :");
+		lcd_cmd(0xCA);
+		lcd_angle(position,lcd_str);
+		lcd_text(lcd_str);
 		
 		
 		
@@ -148,18 +148,18 @@ int main(void)
 		
 		
 		
-		/* Display controller parameters: */
-		lcd_cmd(0x80);
-		lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
-		lcd_text(lcd_str);
-				
-		lcd_cmd(0xC0);
-		lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
-		lcd_text(lcd_str);
-				
-		lcd_cmd(0xC8);
-		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
-		lcd_text(lcd_str);
+// 		/* Display controller terms: */
+// 		lcd_cmd(0x80);
+// 		lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
+// 		lcd_text(lcd_str);
+// 				
+// 		lcd_cmd(0xC0);
+// 		lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
+// 		lcd_text(lcd_str);
+// 				
+// 		lcd_cmd(0xC8);
+// 		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
+// 		lcd_text(lcd_str);
 
 		
 
@@ -192,7 +192,7 @@ ISR(TIMER2_COMP_vect)
 
 	static uint8_t setpoint_preset_number = 0;
 	static uint16_t counter_startup_freq = 900;
-	static uint8_t startup_mode_active = 1;
+	static uint8_t startup_mode_active = 0;
 	static uint16_t startup_setpoints[4] = {200,400,600,800};
 	
 	if (startup_mode_active)

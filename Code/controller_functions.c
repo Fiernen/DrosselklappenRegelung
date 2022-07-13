@@ -283,7 +283,6 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	{
 		speed_error_integral = 0;
 	}
-// 	speed_I_term = limit_int16((int32_t) speed_error_integral / TN_speed, (int16_t) -(ICR1/2), (int16_t) ICR1/2);
 	speed_I_term = speed_error_integral;
 
 	// Controller output P+I, with limits/overflow protection:
@@ -293,7 +292,6 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;
 	duty_cycle = (duty_cycle>>16); // /UINT16_MAX;
-	
 	
 	// Controller output scaling:
 	duty_cycle_scaled = (uint16_t) duty_cycle;

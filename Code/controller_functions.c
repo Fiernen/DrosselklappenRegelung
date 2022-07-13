@@ -209,7 +209,7 @@ int16_t check_int16_overunderflow(int32_t var)
 
 
 
-/* limit_int16(var, MIN, MAX) Limits the argument var between MIN and MAX
+/* limit_int16(var, MAX, MIN) Limits the argument var between MIN and MAX
 
 */
 int16_t limit_int16(int32_t var, int16_t MIN, int16_t MAX)
@@ -227,28 +227,10 @@ int16_t limit_int16(int32_t var, int16_t MIN, int16_t MAX)
 
 
 
-/* limit_int16(var, MIN, MAX) Limits the argument var between MIN and MAX
-
-*/
-int32_t limit_int32(int64_t var, int32_t MIN, int32_t MAX)
-{
-	if (var > MAX)
-	{
-		return MAX;
-	}
-	else if (var < MIN)
-	{
-		return MIN;
-	}
-	return var;
-}
-
-
-
-/* limit_integral(var, MIN, MAX) Limits the argument var between MIN and MAX
+/* limit_integral(var, MAX, MIN) Limits the argument var between MIN and MAX
 	This function does not register overflows.
 */
-int64_t limit_integral(int64_t var, int64_t MIN, int64_t MAX)
+int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 {
 	if (var > MAX)
 	{
@@ -269,44 +251,50 @@ int64_t limit_integral(int64_t var, int64_t MIN, int64_t MAX)
 uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {
 
-	static int32_t prev_sample_position = 0;
-	static int64_t speed_error_integral = 0;
+	int16_t speed;
+	int16_t position_error;
+	int16_t speed_setpoint;
+	int16_t speed_error;
+	int16_t speed_P_term;
+	int16_t speed_I_term;
+	int32_t duty_cycle;
+	uint32_t duty_cycle_scaled;
+
+	static int16_t prev_sample_position = 0;
+	static int32_t speed_error_integral = 0;
 		
 	// P-term-position, with overflow protection:
-	int32_t position_error = limit_int32((int64_t) position_setpoint - position, INT32_MIN, INT32_MAX);
-	int32_t speed_setpoint = limit_int32((int64_t) position_error * kP_position / 16, INT32_MIN, INT32_MAX);
+	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
+	speed_setpoint = limit_int16((int32_t) position_error * kP_position / 16, INT16_MIN, INT16_MAX);
 	
 	// D-Term-speed;
-	int32_t speed = (position-prev_sample_position); // derivative
+	speed = (position-prev_sample_position); // derivative
 	prev_sample_position = position;
 
 	// P-term-speed, with overflow protection:
-	int32_t speed_error = limit_int32((int64_t) speed_setpoint - speed, INT32_MIN, INT32_MAX);
-	int32_t speed_P_term = limit_int32((int64_t) speed_error * kP_speed / 16, INT32_MIN, INT32_MAX);
+	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error * kP_speed / 16, (int16_t) INT16_MIN, (int16_t) INT16_MAX);
 
 	// I-term-speed, with limits/overflow protection:
-	int64_t next_add = (int64_t) speed_P_term * TN_speed;
-	next_add = (int64_t) next_add / 16384;
-	speed_error_integral = limit_integral((int64_t) speed_error_integral + next_add, (int64_t) INT32_MIN, (int64_t) INT32_MAX);
+	int32_t next_add = (int32_t) speed_P_term * TN_speed;
+	next_add = (int32_t) next_add / 16384;
+	speed_error_integral = limit_integral((int32_t) speed_error_integral + next_add, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
 	if (wire_damage)
 	{
 		speed_error_integral = 0;
 	}
-	int32_t speed_I_term = speed_error_integral;
+	speed_I_term = speed_error_integral;
 
 	// Controller output P+I, with limits/overflow protection:
-	int64_t duty_cycle = limit_int32((int64_t) speed_P_term + speed_I_term, INT32_MIN+1, INT32_MAX); //  
-	USART_send_duty_cycle = (int32_t) duty_cycle;
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN+1, INT16_MAX); //  
+	USART_send_duty_cycle = (int16_t) duty_cycle;
 
-	duty_cycle = (duty_cycle + INT32_MAX);
+	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;
-	duty_cycle = (duty_cycle>>32); // /UINT16_MAX;
-	
-// 	duty_cycle = duty_cycle
-	
+	duty_cycle = (duty_cycle>>16); // /UINT16_MAX;
 	
 	// Controller output scaling:
-	uint16_t duty_cycle_scaled = (uint16_t) duty_cycle;
+	duty_cycle_scaled = (uint16_t) duty_cycle;
 
 	USART_send_position = position;
 	USART_send_position_setpoint = position_setpoint;

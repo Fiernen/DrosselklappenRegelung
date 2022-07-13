@@ -3,6 +3,10 @@
 // #define PROJECT_HEADER_H_
 
 
+#define default_kP_position 64
+#define default_kP_speed 64
+#define default_kP_TN_speed 95
+
 #define STARTUP_MODE 0
 #define DEBUG 1
 #define TEST 1

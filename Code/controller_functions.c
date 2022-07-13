@@ -250,20 +250,30 @@ int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
 */
 uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t kP_position, uint8_t kP_speed, uint8_t TN_speed)
 {
+
+	int16_t speed;
+	int16_t position_error;
+	int16_t speed_setpoint;
+	int16_t speed_error;
+	int16_t speed_P_term;
+	int16_t speed_I_term;
+	int32_t duty_cycle;
+	uint32_t duty_cycle_scaled;
+
 	static int16_t prev_sample_position = 0;
 	static int32_t speed_error_integral = 0;
 		
 	// P-term-position, with overflow protection:
-	int16_t position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
-	int16_t speed_setpoint = limit_int16((int32_t) position_error * kP_position / 16, INT16_MIN, INT16_MAX);
+	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
+	speed_setpoint = limit_int16((int32_t) position_error * kP_position / 16, INT16_MIN, INT16_MAX);
 	
 	// D-Term-speed;
-	int16_t speed = (position-prev_sample_position); // derivative
+	speed = (position-prev_sample_position); // derivative
 	prev_sample_position = position;
 
 	// P-term-speed, with overflow protection:
-	int16_t speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
-	int16_t speed_P_term = limit_int16((int32_t) speed_error * kP_speed / 16, (int16_t) INT16_MIN, (int16_t) INT16_MAX);
+	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error * kP_speed / 16, (int16_t) INT16_MIN, (int16_t) INT16_MAX);
 
 	// I-term-speed, with limits/overflow protection:
 	int32_t next_add = (int32_t) speed_P_term * TN_speed;
@@ -273,33 +283,29 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	{
 		speed_error_integral = 0;
 	}
-	int16_t speed_I_term = speed_error_integral;
+// 	speed_I_term = limit_int16((int32_t) speed_error_integral / TN_speed, (int16_t) -(ICR1/2), (int16_t) ICR1/2);
+	speed_I_term = speed_error_integral;
 
 	// Controller output P+I, with limits/overflow protection:
-	int32_t duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX);
-	if (USART_transmission_complete)
-	{
-		USART_send_duty_cycle = (int16_t) duty_cycle;
-	}
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN, INT16_MAX); //  
+	USART_send_duty_cycle = (int16_t) duty_cycle;
+
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;
 	duty_cycle = duty_cycle/UINT16_MAX;
 	
 	
 	// Controller output scaling:
-	uint32_t duty_cycle_scaled = (uint16_t) duty_cycle;
+	duty_cycle_scaled = (uint16_t) duty_cycle;
 
-	if (USART_transmission_complete)
-	{
-		USART_send_position = position;
-		USART_send_position_setpoint = position_setpoint;
-		USART_send_duty_cycle_scaled = duty_cycle_scaled;
-		USART_send_speed_setpoint = speed_setpoint;
-		USART_send_speed = speed;
-		USART_send_speed_P_term = speed_P_term;
-		USART_send_speed_I_term = speed_I_term;
-		USART_transmission_complete = 0;
-	}
+	USART_send_position = position;
+	USART_send_position_setpoint = position_setpoint;
+	USART_send_duty_cycle_scaled = duty_cycle_scaled;
+	USART_send_speed_setpoint = speed_setpoint;
+	USART_send_speed = speed;
+	USART_send_speed_P_term = speed_P_term;
+	USART_send_speed_I_term = speed_I_term;
+	
 	
 	return duty_cycle_scaled;
 }

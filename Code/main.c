@@ -3,31 +3,21 @@
 	by Valerian Weber and Beat Fürst
 	
 Features:
-	- Measure position of throttle-valve
-	- Position control (Cascading P-position into PI-speed controller)
-	- Displaying current set point and actual value on LCD-display.
-	- Pushing new control parameters from a computer over USART.
-	- Displaying different states of the program on the computer.
-	- Detecting broken sensor wires.
-
-Developed on:
-Microchip Studio 7.0.2542
-gcc (Rev10, Built by MSYS2 project) 11.2.0
-
+	- Measure position of valve
+	- Position control
+	- Displaying current set point and actual value on LCD-display
+	- Pushing form a computer new control parameters
+	
+		
 */
 
-
-
-#include "project_header.h" // Header shared by all *.c-files of this project
-// Header for the different *.c-files in this project:
+#include "project_header.h"
 #include "lcd_functions.h"
 #include "USART_functions.h"
 #include "controller_functions.h"
 #include "EEPROM_function.h"
 
 
-
-// Variables shared by main and the controller-interrupt;
 uint16_t position;
 uint16_t position_setpoint = 0;
 uint8_t kP_position = 45;
@@ -36,7 +26,8 @@ uint8_t TN_speed = 1;
 
 
 
-/* main() initalises all components and handles real time irrelevent tasks
+
+/* main() initalises all components and handles not real time relevent tasks
 	
 */
 int main(void)
@@ -169,74 +160,73 @@ int main(void)
 // 		lcd_cmd(0xC8);
 // 		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
 // 		lcd_text(lcd_str);
+
+		
+
 	}
 	return 0;
 }
 
 
 
-/* ISR(TIMER2_COMP_vect) is a interrupt which is triggered by a timer 2 comparator match.
-	This handles the whole controller functionality of this project, which includes:
-		- position measure + filter
-		- controller
-		- set point measure + filter (and startup-mode)
+/* ISR(TIMER0_OVF_vect) is a interrupt which is triggered by a timer 0 overflow.
+
 */
 ISR(TIMER2_COMP_vect)
 {
 
 	#if DEBUG
-		PORTB |= 1<<0; // For time measure
+		PORTB |= 1<<0; // Time measure 
 	#endif
 	
-	/* Measuring and controller: */
 	position = position_measure();
 	
-	if (USART_transmission_complete)
-	{
-		USART_send_speed_setpoint = position;
-	}
+	#if DEBUG
+	PORTB &= ~(1<<0);
+	#endif
 	
+	USART_send_speed_setpoint = position;
 	position = FIR_filter(position);
 	
 	OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
 
-	/* Startup mode:
-	Is unique to startup of the controller
-	Sets 4 different set points before returning default operation mode, with set point from poti.
-	In every interrupt the code counts the sample count up until the set point */
 	static uint8_t setpoint_preset_number = 0;
-	#define controller_sample_frequency 900 // Frequency of interrupt
-	static uint16_t sample_counter = controller_sample_frequency; // counts samples till next set point change in startup mode
+	static uint16_t counter_startup_freq = 900;
 	static uint8_t startup_mode_active = 0;
 	static uint16_t startup_setpoints[4] = {200,400,600,800};
 	
 	if (startup_mode_active)
 	{
-		if (sample_counter == controller_sample_frequency)
+		if (counter_startup_freq == 225)
 		{
-			if (setpoint_preset_number > 4) // Check for last sample
-			{
-				startup_mode_active = 0;
-			}
-			else
-			{
-				position_setpoint = startup_setpoints[setpoint_preset_number];
-				setpoint_preset_number++; // Go to next preset set point
-				sample_counter = 0; // Reset sample counter
-			}
+			position_setpoint = startup_setpoints[setpoint_preset_number];			
 			
+			// count up
+			setpoint_preset_number++;
+			if (setpoint_preset_number > 4)
+			{
+// 				setpoint_preset_number = 0;
+				startup_mode_active = 0;
+				
+			}
+			counter_startup_freq = 0;
 		}
-		sample_counter++; // count up
+		else
+		{
+			counter_startup_freq++;
+		}
 	}
-	else // default operating mode (poti measure for set point and filter)
+	else 
 	{
 		uint16_t new_position_setpoint = setpoint_measure();
 		position_setpoint = FIR_filter2(new_position_setpoint);
 	}
 	
-	#if DEBUG
-	PORTB &= ~(1<<0);
-	#endif
+	
+	
+	
+
+
 }
 
 

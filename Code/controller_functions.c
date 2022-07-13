@@ -296,7 +296,6 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	duty_cycle_scaled = (uint16_t) duty_cycle;
 
 	USART_send_position = position;
-	USART_send_position_setpoint = position_setpoint;
 	USART_send_duty_cycle_scaled = duty_cycle_scaled;
 	USART_send_speed_setpoint = speed_setpoint;
 	USART_send_speed = speed;

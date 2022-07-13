@@ -3,9 +3,9 @@
 // #define PROJECT_HEADER_H_
 
 
-#define default_kP_position 64
-#define default_kP_speed 64
-#define default_kP_TN_speed 95
+#define default_kP_position 80
+#define default_kP_speed 70
+#define default_kP_TN_speed 120
 
 #define STARTUP_MODE 0
 #define DEBUG 1
@@ -13,7 +13,7 @@
 #define MEASURE_IMPULSE_RESP 0
 #define PULSE_WIDTH_SAMPLES 2
 #define MANUAL_CONTROL 0
-#define FILTER_SIZE 16
+#define FILTER_SIZE 24
 #define WIRE_TOLERANCE 10
 
 #define	F_CPU 3686400

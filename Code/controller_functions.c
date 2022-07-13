@@ -230,7 +230,7 @@ int16_t limit_int16(int32_t var, int16_t MIN, int16_t MAX)
 /* limit_integral(var, MAX, MIN) Limits the argument var between MIN and MAX
 	This function does not register overflows.
 */
-int32_t limit_integral(int32_t var, int32_t MIN, int32_t MAX)
+int64_t limit_integral(int64_t var, int32_t MIN, int32_t MAX)
 {
 	if (var > MAX)
 	{
@@ -259,9 +259,8 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	int16_t speed_I_term;
 	int32_t duty_cycle;
 	uint32_t duty_cycle_scaled;
-
 	static int16_t prev_sample_position = 0;
-	static int32_t speed_error_integral = 0;
+	static int64_t speed_error_integral = 0;
 		
 	// P-term-position, with overflow protection:
 	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
@@ -277,13 +276,13 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	// I-term-speed, with limits/overflow protection:
 	int32_t next_add = (int32_t) speed_P_term * TN_speed;
-	next_add = (int32_t) next_add / 16384;
-	speed_error_integral = limit_integral((int32_t) speed_error_integral + next_add, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+	next_add = (int32_t) next_add / 1024;
+	speed_error_integral = limit_integral((int64_t) speed_error_integral + next_add, (int32_t) INT16_MIN*16+1, (int32_t) INT16_MAX*16-1);
 	if (wire_damage)
 	{
 		speed_error_integral = 0;
 	}
-	speed_I_term = speed_error_integral;
+	speed_I_term = (int32_t) speed_error_integral/16;
 
 	// Controller output P+I, with limits/overflow protection:
 	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN+1, INT16_MAX); //  

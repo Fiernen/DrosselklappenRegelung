@@ -174,7 +174,9 @@ int main(void)
 */
 ISR(TIMER2_COMP_vect)
 {
-
+	static uint8_t powered = 0;
+	static uint8_t startup_mode_active = 0;
+	
 	#if DEBUG
 		PORTB |= 1<<0; // Time measure 
 	#endif
@@ -184,8 +186,21 @@ ISR(TIMER2_COMP_vect)
 	USART_send_speed_setpoint = position;
 	position = FIR_filter(position);
 	
-	OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
-
+	
+	if (powered)
+	{
+		OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
+	}
+	else
+	{
+		OCR1A = 1230;
+		if (position >= 100)
+		{
+			powered = 1;
+			startup_mode_active = 1;
+		}
+	}
+	
 	/* Startup mode:
 	Is unique to startup of the controller
 	Sets 4 different set points before returning default operation mode, with set point from poti.
@@ -193,14 +208,14 @@ ISR(TIMER2_COMP_vect)
 	static uint8_t setpoint_preset_number = 0;
 	#define controller_sample_frequency 900 // Frequency of interrupt
 	static uint16_t sample_counter = controller_sample_frequency; // counts samples till next set point change in startup mode
-	static uint8_t startup_mode_active = 1;
-	static uint16_t startup_setpoints[4] = {200,400,600,800};
-
+	uint16_t startup_setpoints[9] = {400,600,800,350,300,250,200,150,100,100};
+	uint16_t new_position_setpoint;
+	
 	if (startup_mode_active)
 	{
 		if (sample_counter == controller_sample_frequency)
 		{
-			if (setpoint_preset_number >= 4) // Check for last sample
+			if (setpoint_preset_number >= 9) // Check for last sample
 			{
 				startup_mode_active = 0;
 			}
@@ -216,9 +231,10 @@ ISR(TIMER2_COMP_vect)
 	}
 	else // default operating mode (poti measure for set point and filter)
 	{
-		uint16_t new_position_setpoint = setpoint_measure();
+		new_position_setpoint = setpoint_measure();
 		position_setpoint = FIR_filter2(new_position_setpoint);
 	}
+	
 	USART_send_position_setpoint = position_setpoint;
 	
 	#if DEBUG

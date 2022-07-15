@@ -260,7 +260,7 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	int32_t duty_cycle;
 	uint32_t duty_cycle_scaled;
 	static int16_t prev_sample_position = 0;
-	static int64_t speed_error_integral = 0;
+	static int64_t speed_error_integral = 3575;
 		
 	// P-term-position, with overflow protection:
 	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);

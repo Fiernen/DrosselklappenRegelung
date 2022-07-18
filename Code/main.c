@@ -5,7 +5,7 @@
 Features:
 	- Measure position of valve
 	- Position control
-	- Displaying current set point and actual value on LCD-display
+	- Displaying current set point and actual value angular position on LCD-display
 	- Pushing form a computer new control parameters
 	
 		
@@ -26,7 +26,6 @@ uint8_t TN_speed;
 
 
 
-
 /* main() initalises all components and handles not real time relevent tasks
 	
 */
@@ -44,12 +43,19 @@ int main(void)
 	// Initialization:
 	DDRB |= 1<<PB5; // Enable signal port
 	PORTB |= 1<<PB5; // Disable power electronics
+	
 	lcd_init();
 	TimerPWM_init();
 	TimerController_init();
 	ADConverter_init();
 	read_ctrl_params_from_EEPROM(&kP_position, &kP_speed, &TN_speed);
 	USART_init();
+	
+	lcd_cmd(0x80);
+	lcd_text("Sollwert:");
+	
+	lcd_cmd(0xC0);
+	lcd_text("Istwert :");	
 	
 	sei(); // Enable interrupts
 	PORTB &= ~(1<<PB5); // Enable power electronics
@@ -60,7 +66,6 @@ int main(void)
 	{	
 		// Catch new parameters:
 		USART_receive(&kP_position, &kP_speed, &TN_speed);
-		save_ctrl_params2EEPROM(kP_position, kP_speed, TN_speed);
 		
 		// Send to PC via USART:
 		#if DEBUG
@@ -90,34 +95,32 @@ int main(void)
 			}
 			lcd_cmd(0x01);
 		}
-
+		
+		
 		// Display angles:
-		lcd_cmd(0x80);
-		lcd_text("Sollwert:");
+
 		lcd_cmd(0x8A);
 		lcd_angle(position_setpoint, lcd_str);
 		lcd_text(lcd_str);
 		
-		lcd_cmd(0xC0);
-		lcd_text("Istwert :");
 		lcd_cmd(0xCA);
 		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
-	
-		/* 
+		
+		/*
 		// Display controller parameters:
 		lcd_cmd(0x80);
-		lcd_text('kP_p: ');
+		lcd_text("kPp:");
 		lcd_zahl(kP_position,lcd_str); // kP_position
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC0);
-		lcd_text('kP_s: ');
+		lcd_text("kPs:");
 		lcd_zahl(kP_speed,lcd_str); // kP_speed
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC8);
-		lcd_text('kP_p: ');
+		lcd_text("TNs:");
 		lcd_zahl(TN_speed,lcd_str); // TN_speed
 		lcd_text(lcd_str);
 		
@@ -203,7 +206,7 @@ ISR(TIMER2_COMP_vect)
 	static uint8_t setpoint_preset_number = 0;
 	#define controller_sample_frequency 900 // Frequency of interrupt
 	static uint16_t sample_counter = 0; // counts samples till next set point change in startup mode
-	uint16_t startup_setpoints[9] = {400,600,800,350,300,250,200,150,100,100};
+	uint16_t startup_setpoints[9] = {400,600,800,350,300,250,200,150,100};
 	uint16_t new_position_setpoint;
 	
 	if (startup_mode_active)

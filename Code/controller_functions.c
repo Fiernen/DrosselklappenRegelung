@@ -69,11 +69,13 @@ void check_wire_integrety(uint16_t AD2, uint16_t AD5)
 		wire_damage = 1;
 		PORTB |= 1<<PB5; // Disable power electronics
 	}
+	/* power change is needed to reset wire damage, that why else block is commented out.
 	else
 	{
 		wire_damage = 0;
 		PORTB &= ~(1<<PB5); // Enable power electronics
 	}
+	*/
 	return;
 }
 

@@ -11,7 +11,7 @@
 #define DEBUG 1
 
 // Filter size
-#define FILTER_SIZE 1
+#define FILTER_SIZE 24
 
 // Tolerance value which characterizes the allowed deviation of the redundant vale angle sensors
 #define WIRE_TOLERANCE 10

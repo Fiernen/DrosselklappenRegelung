@@ -139,7 +139,7 @@ void lcd_text(char* ztext)
 		PORTD |= (ztext[j]<<4);				// UHB von ztext in OHB von PORTD schreiben
 		PORTD &= ~ENABLE;					// E=0 setzen
 		j++;								// j inkrementieren
-		_delay_ms(1);						// Befehlsausf?hrung
+		_delay_us(50);						// Befehlsausf?hrung
 	}
 	return;
 }

@@ -1,5 +1,5 @@
 #include "project_header.h"
-
+#include "EEPROM_function.h"
 
 
 /* USART_init() initializes the USART interface
@@ -94,6 +94,7 @@ void USART_receive(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed)
 			*kP_position = UDR;
 			*kP_speed = UDR;
 			*TN_speed = UDR;
+			save_ctrl_params2EEPROM(*kP_position, *kP_speed, *TN_speed);
 			msg_incoming = 0;
 		}
 		else

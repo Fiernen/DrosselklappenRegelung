@@ -1,24 +1,17 @@
-/* controller_functions.c is collection of functions to initalise and operate the main tasks of the project
-	measuring, filtering, controlling position and setting a PWM signal.
+/* controller_functions.c is a collection of functions to initalise and operate the main tasks of the project
+	measuring, filtering, controlling angle position and setting a PWM signal.
 
 */
 
 #include "project_header.h"
-// #include "controller_functions.h"
 
 
 
-
-
-
-/* TimerController_init() initialises the Timer/Counter 1 for controller interrupt
-	Timer 0 for measuring and controller calculation:
+/* TimerController_init() initialises the Timer/Counter 2 for controller interrupt
+	
 */
 void TimerController_init()
 {
-// 	TCCR0 = (1<<CS01)|(1<<CS00);	// clk_IO/64 --> sample rate 4.42 ms, sample freq 225 Hz
-// 	TIMSK |= (1<<TOIE0);			// Enable interrupt for Timer overflow		
-
 	TCCR2 = (1<<FOC2) | (1<<WGM21) | (0<<WGM20); // Force Output Compare and CTC Mode
 	TCCR2 |= (0<<CS22) | (1<<CS21) | (1<<CS20); // Prescaler
 	TIMSK |= (1<<OCIE2); // Interrupt on compare match
@@ -42,8 +35,9 @@ void ADConverter_init()
 
 
 
-/* Timer1_init configures the timer and PWM signal for motor control
+/* TimerPWM_init configures the timer and PWM signal for motor control
 	The pulse width can be set anywhere in the code after initialization via OCR1A (16bit) which must be smaller than ICR1.
+	Uses Timer 1.
 */
 void TimerPWM_init(void)
 {
@@ -191,7 +185,7 @@ uint16_t FIR_filter2(uint16_t new_value)
 
 
 
-/* limit_int16(var, MAX, MIN) Limits the argument var between INT16_MIN and INT16_MAX 
+/* check_int16_overunderflow(var) Limits result of an operation to INT16_MIN and INT16_MAX 
 
 */
 int16_t check_int16_overunderflow(int32_t var)
@@ -260,7 +254,7 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	int32_t duty_cycle;
 	uint32_t duty_cycle_scaled;
 	static int16_t prev_sample_position = 0;
-	static int64_t speed_error_integral = 3575;
+	static int64_t speed_error_integral = 3575; // offset is needed for power wait mode
 		
 	// P-term-position, with overflow protection:
 	position_error = limit_int16((int32_t) position_setpoint - position, INT16_MIN, INT16_MAX);
@@ -272,7 +266,7 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 
 	// P-term-speed, with overflow protection:
 	speed_error = limit_int16((int32_t) speed_setpoint - speed, INT16_MIN, INT16_MAX);
-	speed_P_term = limit_int16((int32_t) speed_error * kP_speed / 16, (int16_t) INT16_MIN, (int16_t) INT16_MAX);
+	speed_P_term = limit_int16((int32_t) speed_error * kP_speed / 16, INT16_MIN, INT16_MAX);
 
 	// I-term-speed, with limits/overflow protection:
 	int32_t next_add = (int32_t) speed_P_term * TN_speed;

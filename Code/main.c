@@ -91,35 +91,11 @@ int main(void)
 			lcd_cmd(0x01);
 		}
 
-		
-		/* Display angles and ctrl paras */
-// 		lcd_cmd(0x80);
-// 		lcd_angle(position_setpoint,lcd_str);
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0x89);
-// 		lcd_angle(position,lcd_str);
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0xC0);
-// 		lcd_zahl(kP_position,lcd_str);
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0xC4);
-// 		lcd_zahl(kP_speed,lcd_str);
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0xC8);
-// 		lcd_zahl(TN_speed,lcd_str);
-// 		lcd_text(lcd_str);
-
-
-			
-		/* Display angles */
+		// Display angles:
 		lcd_cmd(0x80);
 		lcd_text("Sollwert:");
 		lcd_cmd(0x8A);
-		lcd_angle(USART_send_position_setpoint, lcd_str);
+		lcd_angle(position_setpoint, lcd_str);
 		lcd_text(lcd_str);
 		
 		lcd_cmd(0xC0);
@@ -127,41 +103,58 @@ int main(void)
 		lcd_cmd(0xCA);
 		lcd_angle(position,lcd_str);
 		lcd_text(lcd_str);
+	
+		/* 
+		// Display controller parameters:
+		lcd_cmd(0x80);
+		lcd_text('kP_p: ');
+		lcd_zahl(kP_position,lcd_str); // kP_position
+		lcd_text(lcd_str);
 		
+		lcd_cmd(0xC0);
+		lcd_text('kP_s: ');
+		lcd_zahl(kP_speed,lcd_str); // kP_speed
+		lcd_text(lcd_str);
 		
+		lcd_cmd(0xC8);
+		lcd_text('kP_p: ');
+		lcd_zahl(TN_speed,lcd_str); // TN_speed
+		lcd_text(lcd_str);
 		
-// 		/* Display controller parameters: */
-// 		lcd_cmd(0x80);
-// 		lcd_text('kP_p: ');
-// 		lcd_zahl(kP_position,lcd_str); // kP_position
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0xC0);
-// 		lcd_text('kP_s: ');
-// 		lcd_zahl(kP_speed,lcd_str); // kP_speed
-// 		lcd_text(lcd_str);
-// 		
-// 		lcd_cmd(0xC8);
-// 		lcd_text('kP_p: ');
-// 		lcd_zahl(TN_speed,lcd_str); // TN_speed
-// 		lcd_text(lcd_str);
+		// Display angles and ctrl paras
+		lcd_cmd(0x80);
+		lcd_angle(position_setpoint,lcd_str);
+		lcd_text(lcd_str);
 		
+		lcd_cmd(0x89);
+		lcd_angle(position,lcd_str);
+		lcd_text(lcd_str);
 		
+		lcd_cmd(0xC0);
+		lcd_zahl(kP_position,lcd_str);
+		lcd_text(lcd_str);
 		
-// 		/* Display controller terms: */
-// 		lcd_cmd(0x80);
-// 		lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
-// 		lcd_text(lcd_str);
-// 				
-// 		lcd_cmd(0xC0);
-// 		lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
-// 		lcd_text(lcd_str);
-// 				
-// 		lcd_cmd(0xC8);
-// 		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
-// 		lcd_text(lcd_str);
-
+		lcd_cmd(0xC4);
+		lcd_zahl(kP_speed,lcd_str);
+		lcd_text(lcd_str);
 		
+		lcd_cmd(0xC8);
+		lcd_zahl(TN_speed,lcd_str);
+		lcd_text(lcd_str);
+		
+		// Display controller terms:
+		lcd_cmd(0x80);
+		lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
+		lcd_text(lcd_str);
+				
+		lcd_cmd(0xC0);
+		lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
+		lcd_text(lcd_str);
+				
+		lcd_cmd(0xC8);
+		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
+		lcd_text(lcd_str);
+		*/
 
 	}
 	return 0;
@@ -169,79 +162,99 @@ int main(void)
 
 
 
-/* ISR(TIMER0_OVF_vect) is a interrupt which is triggered by a timer 0 overflow.
+/* ISR(TIMER2_COMP_vect) is a interrupt which is triggered by a timer 0 overflow and handles the control
 
 */
 ISR(TIMER2_COMP_vect)
 {
+	#if DEBUG
+	PORTB |= 1<<0; // Time measure
+	#endif
+	
 	static uint8_t powered = 0;
 	static uint8_t startup_mode_active = 0;
 	
-	#if DEBUG
-		PORTB |= 1<<0; // Time measure 
-	#endif
+	
 	
 	position = position_measure();
-	
-	USART_send_speed_setpoint = position;
+		USART_send_speed_setpoint = position;
 	position = FIR_filter(position);
+	
 	
 	
 	if (powered)
 	{
 		OCR1A = Motor_controller(position, position_setpoint, kP_position, kP_speed, TN_speed);
 	}
-	else
+	else // Wait for power
 	{
-		OCR1A = 1230;
-		if (position >= 100)
+		OCR1A = 1230; // ca. 60%
+		if (position >= 100) // Checks with constant duty cycle, if the valve moves.
 		{
-			powered = 1;
-			startup_mode_active = 1;
+			// When valve moved, it is assumed that the power electronics are turned on
+			powered = 1; // turns controller on
+			startup_mode_active = 1; // switch into startup mode
 		}
 	}
 	
 	/* Startup mode:
 	Is unique to startup of the controller
-	Sets 4 different set points before returning default operation mode, with set point from poti.
-	In every interrupt the code counts the sample count up until the set point */
+	Sets a number of different set points before returning to default operation mode, with reads the set point from a poti.*/
 	static uint8_t setpoint_preset_number = 0;
 	#define controller_sample_frequency 900 // Frequency of interrupt
-	static uint16_t sample_counter = controller_sample_frequency; // counts samples till next set point change in startup mode
+	static uint16_t sample_counter = 0; // counts samples till next set point change in startup mode
 	uint16_t startup_setpoints[9] = {400,600,800,350,300,250,200,150,100,100};
 	uint16_t new_position_setpoint;
 	
 	if (startup_mode_active)
 	{
+		new_position_setpoint = startup_setpoints[setpoint_preset_number];
+		
 		if (sample_counter == controller_sample_frequency)
 		{
-			if (setpoint_preset_number >= 9) // Check for last sample
-			{
-				startup_mode_active = 0;
-			}
-			else
-			{
-				position_setpoint = startup_setpoints[setpoint_preset_number];
-				setpoint_preset_number++; // Go to next preset set point
-				sample_counter = 0; // Reset sample counter
-			}
-
+			setpoint_preset_number++; // Go to next preset set point
+			sample_counter = 0; // Reset sample counter
 		}
+		
+		if (setpoint_preset_number >= 9)
+		{
+			startup_mode_active = 0;
+		}
+		
 		sample_counter++; // count up
 	}
 	else // default operating mode (poti measure for set point and filter)
 	{
 		new_position_setpoint = setpoint_measure();
-		position_setpoint = FIR_filter2(new_position_setpoint);
 	}
-	
+	position_setpoint = FIR_filter2(new_position_setpoint);
 	USART_send_position_setpoint = position_setpoint;
 	
 	#if DEBUG
 	PORTB &= ~(1<<0);
 	#endif
-
-
 }
 
+
+
+// /* ISR(USART_RXC_vect) is triggered when the controller is receiving
+// 
+// */
+// ISR(USART_RXC_vect)
+// {
+// 	sei();
+// 	USART_receive_ISR(&kP_position, &kP_speed, &TN_speed);
+// }
+// 
+// 
+// 
+// /* ISR(TIMER0_OVF_vect) sends the current state of the system via USART
+// 
+// */
+// ISR(TIMER0_OVF_vect)
+// {
+// 	sei();
+// 	USART_send_package();
+// }
+// 
 

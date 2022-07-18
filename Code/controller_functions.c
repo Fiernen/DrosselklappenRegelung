@@ -4,7 +4,7 @@
 */
 
 #include "project_header.h"
-
+#include "controller_functions.h"
 
 
 /* TimerController_init() initialises the Timer/Counter 2 for controller interrupt

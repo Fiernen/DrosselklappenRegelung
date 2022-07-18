@@ -1,4 +1,5 @@
 #include "project_header.h"
+#include "EEPROM_function.h"
 #include <avr/eeprom.h>
 
 uint8_t ee_kP_position EEMEM = default_kP_position;

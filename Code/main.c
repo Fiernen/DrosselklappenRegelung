@@ -84,81 +84,70 @@ int main(void)
 			lcd_text("Broken Wire!");
 			lcd_cmd(0xC0);
 			lcd_text("Is shutdown!");
-			while (wire_damage)
-			{
-				// Catch new parameters:
-				USART_receive(&kP_position, &kP_speed, &TN_speed);
-				save_ctrl_params2EEPROM(kP_position, kP_speed, TN_speed);
-		
-				// Send to PC via USART:
-				USART_send_package();
-			}
-			lcd_cmd(0x01);
 		}
+		else
+		{
+			// Display angles:
+			lcd_cmd(0x8A);
+			lcd_angle(position_setpoint, lcd_str);
+			lcd_text(lcd_str);
 		
+			lcd_cmd(0xCA);
+			lcd_angle(position,lcd_str);
+			lcd_text(lcd_str);
 		
-		// Display angles:
-
-		lcd_cmd(0x8A);
-		lcd_angle(position_setpoint, lcd_str);
-		lcd_text(lcd_str);
+			/*
+			// Display controller parameters:
+			lcd_cmd(0x80);
+			lcd_text("kPp:");
+			lcd_zahl(kP_position,lcd_str); // kP_position
+			lcd_text(lcd_str);
 		
-		lcd_cmd(0xCA);
-		lcd_angle(position,lcd_str);
-		lcd_text(lcd_str);
+			lcd_cmd(0xC0);
+			lcd_text("kPs:");
+			lcd_zahl(kP_speed,lcd_str); // kP_speed
+			lcd_text(lcd_str);
 		
-		/*
-		// Display controller parameters:
-		lcd_cmd(0x80);
-		lcd_text("kPp:");
-		lcd_zahl(kP_position,lcd_str); // kP_position
-		lcd_text(lcd_str);
+			lcd_cmd(0xC8);
+			lcd_text("TNs:");
+			lcd_zahl(TN_speed,lcd_str); // TN_speed
+			lcd_text(lcd_str);
 		
-		lcd_cmd(0xC0);
-		lcd_text("kPs:");
-		lcd_zahl(kP_speed,lcd_str); // kP_speed
-		lcd_text(lcd_str);
+			// Display angles and ctrl paras
+			lcd_cmd(0x80);
+			lcd_angle(position_setpoint,lcd_str);
+			lcd_text(lcd_str);
 		
-		lcd_cmd(0xC8);
-		lcd_text("TNs:");
-		lcd_zahl(TN_speed,lcd_str); // TN_speed
-		lcd_text(lcd_str);
+			lcd_cmd(0x89);
+			lcd_angle(position,lcd_str);
+			lcd_text(lcd_str);
 		
-		// Display angles and ctrl paras
-		lcd_cmd(0x80);
-		lcd_angle(position_setpoint,lcd_str);
-		lcd_text(lcd_str);
+			lcd_cmd(0xC0);
+			lcd_zahl(kP_position,lcd_str);
+			lcd_text(lcd_str);
 		
-		lcd_cmd(0x89);
-		lcd_angle(position,lcd_str);
-		lcd_text(lcd_str);
+			lcd_cmd(0xC4);
+			lcd_zahl(kP_speed,lcd_str);
+			lcd_text(lcd_str);
 		
-		lcd_cmd(0xC0);
-		lcd_zahl(kP_position,lcd_str);
-		lcd_text(lcd_str);
+			lcd_cmd(0xC8);
+			lcd_zahl(TN_speed,lcd_str);
+			lcd_text(lcd_str);
 		
-		lcd_cmd(0xC4);
-		lcd_zahl(kP_speed,lcd_str);
-		lcd_text(lcd_str);
-		
-		lcd_cmd(0xC8);
-		lcd_zahl(TN_speed,lcd_str);
-		lcd_text(lcd_str);
-		
-		// Display controller terms:
-		lcd_cmd(0x80);
-		lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
-		lcd_text(lcd_str);
+			// Display controller terms:
+			lcd_cmd(0x80);
+			lcd_zahl_s16(USART_send_speed_setpoint,lcd_str); // P-Position-Term
+			lcd_text(lcd_str);
 				
-		lcd_cmd(0xC0);
-		lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
-		lcd_text(lcd_str);
+			lcd_cmd(0xC0);
+			lcd_zahl_s16(USART_send_speed_P_term,lcd_str); // P-Speed-Term
+			lcd_text(lcd_str);
 				
-		lcd_cmd(0xC8);
-		lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
-		lcd_text(lcd_str);
-		*/
-
+			lcd_cmd(0xC8);
+			lcd_zahl_s16(USART_send_speed_I_term,lcd_str); // I-Speed-Term
+			lcd_text(lcd_str);
+			*/
+		}
 	}
 	return 0;
 }

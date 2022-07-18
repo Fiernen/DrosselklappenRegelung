@@ -1,6 +1,6 @@
 // #pragma once
-// #ifndef PROJECT_HEADER_H_
-// #define PROJECT_HEADER_H_
+#ifndef PROJECT_HEADER_H_
+#define PROJECT_HEADER_H_
 
 // Default controller parameters:
 #define default_kP_position 50
@@ -45,4 +45,4 @@ uint16_t USART_send_duty_cycle;
 uint16_t USART_send_speed_I_term;
 
 
-// #endif
+#endif

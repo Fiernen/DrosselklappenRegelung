@@ -1,4 +1,5 @@
 #include "project_header.h"
+#include "USART_functions.h"
 #include "EEPROM_function.h"
 
 
@@ -201,13 +202,3 @@ void USART_flush_receive(void)
 	//}
 			//
 //}
-//
-//
-///* 
-//Uses Timer 2.*/
-//void USART_sendTimer_init(void)
-//{
-	//TCCR0 = (1<<CS02) | (0<<CS01) | (1<<CS00); // prescaler
-	//TIMSK |= 1<<TOIE0; // Enable timer overflow interrupt
-	//
-//} 

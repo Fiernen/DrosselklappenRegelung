@@ -1,5 +1,5 @@
 #include "project_header.h"
-
+#include "lcd_functions.h"
 
 
 #define	RS				0b00000100

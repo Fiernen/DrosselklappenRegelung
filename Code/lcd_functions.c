@@ -34,7 +34,7 @@ void lcd_zahl(uint8_t zahl,char* text)
 
 
 
-/* lcd_zahl_16 converts a 16 bit number into a 5 digit char vector
+/* lcd_zahl_16 converts a 16 bit number into a 5 digit decimal char vector
 	
 */
 void lcd_zahl_16(uint16_t num, char* written)
@@ -54,7 +54,7 @@ void lcd_zahl_16(uint16_t num, char* written)
 	return;
 }
 
-/* lcd_angle converts a 16 bit number into a 5 digit char vector with decimal comma
+/* lcd_angle converts a 16 bit angle number into a 5 digit decimal char vector with decimal comma and °
 	
 */
 void lcd_angle(uint32_t num, char* written)
@@ -77,7 +77,7 @@ void lcd_angle(uint32_t num, char* written)
 		num -= digit*devisor;
 		i++;
 	}
-	written[i] = 0xDF;
+	written[i] = 0xDF; // °
 	i++;
 	written[i] = 0x00; // End marker
 	return;

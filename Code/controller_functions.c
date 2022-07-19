@@ -281,8 +281,11 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	speed_I_term = (int32_t) speed_error_integral/16;
 
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN+1, INT16_MAX); //  
-	USART_send_duty_cycle = (int16_t) duty_cycle;
+	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN+1, INT16_MAX);
+	if (USART_send_complete)
+	{
+		USART_send_duty_cycle = (int16_t) duty_cycle;
+	}
 
 	duty_cycle = (duty_cycle + 32767);
 	duty_cycle = duty_cycle*ICR1;
@@ -290,13 +293,16 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	
 	// Controller output scaling:
 	duty_cycle_scaled = (uint16_t) duty_cycle;
-
-	USART_send_position = position;
-	USART_send_duty_cycle_scaled = duty_cycle_scaled;
-	USART_send_speed_setpoint = speed_setpoint;
-	USART_send_speed = speed;
-	USART_send_speed_P_term = speed_P_term;
-	USART_send_speed_I_term = speed_I_term;
+	
+	if (USART_send_complete)
+	{
+		USART_send_position = position;
+		USART_send_duty_cycle_scaled = duty_cycle_scaled;
+		USART_send_speed_setpoint = speed_setpoint;
+		USART_send_speed = speed;
+		USART_send_speed_P_term = speed_P_term;
+		USART_send_speed_I_term = speed_I_term;
+	}
 	
 	
 	return duty_cycle_scaled;

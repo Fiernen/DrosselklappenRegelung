@@ -7,9 +7,12 @@ Features:
 	- Position control
 	- Displaying current set point and actual value angular position on LCD-display
 	- Pushing form a computer new control parameters
+	- Sending current state to computer
 	
 		
 */
+
+
 
 #include "project_header.h"
 #include "lcd_functions.h"
@@ -18,6 +21,8 @@ Features:
 #include "EEPROM_function.h"
 
 
+
+// Global variables:
 uint16_t position;
 uint16_t position_setpoint = 0;
 uint8_t kP_position;
@@ -35,13 +40,13 @@ int main(void)
 	wire_damage = 0;
 
 	#if DEBUG
-		DDRB |= 1<<DDB0;
-		DDRB |= 1<<DDB2;
-		DDRB |= 1<<DDB3;
-		DDRB |= 1<<DDB4;
+	DDRB |= 1<<DDB0;
+	DDRB |= 1<<DDB2;
+	DDRB |= 1<<DDB3;
+	DDRB |= 1<<DDB4;
 	#endif
 	
-	// Initialization:
+	// Initialization: 
 	DDRB |= 1<<PB5; // Enable signal port
 	PORTB |= 1<<PB5; // Disable power electronics
 	
@@ -52,9 +57,9 @@ int main(void)
 	read_ctrl_params_from_EEPROM(&kP_position, &kP_speed, &TN_speed);
 	USART_init();
 	
+	// Print static text to lcd display
 	lcd_cmd(0x80);
 	lcd_text("Sollwert:");
-	
 	lcd_cmd(0xC0);
 	lcd_text("Istwert :");	
 	
@@ -66,7 +71,7 @@ int main(void)
 	while(1)
 	{	
 		// Catch new parameters:
-//  		USART_receive(&kP_position, &kP_speed, &TN_speed);
+//  		USART_receive(&kP_position, &kP_speed, &TN_speed); // deprecated, solved with interrupt
 		
 		// Send to PC via USART:
 		#if DEBUG
@@ -88,16 +93,17 @@ int main(void)
 		}
 		else
 		{
-// 			// Display angles:
-// 			lcd_cmd(0x8A);
-// 			lcd_angle(position_setpoint, lcd_str);
-// 			lcd_text(lcd_str);
-// 		
-// 			lcd_cmd(0xCA);
-// 			lcd_angle(position,lcd_str);
-// 			lcd_text(lcd_str);
+			// Display angles:
+			lcd_cmd(0x8A);
+			lcd_angle(position_setpoint, lcd_str);
+			lcd_text(lcd_str);
 		
-			
+			lcd_cmd(0xCA);
+			lcd_angle(position,lcd_str);
+			lcd_text(lcd_str);
+		
+		// Other stuff which can be displayed on the lcd display, for debug purpose
+			/* 
 			// Display controller parameters:
 			lcd_cmd(0x80);
 			lcd_text("kPp:");
@@ -113,7 +119,7 @@ int main(void)
 			lcd_text("TNs:");
 			lcd_zahl(TN_speed,lcd_str); // TN_speed
 			lcd_text(lcd_str);
-			/*
+			
 			// Display angles and ctrl paras
 			lcd_cmd(0x80);
 			lcd_angle(position_setpoint,lcd_str);
@@ -173,10 +179,11 @@ ISR(TIMER2_COMP_vect)
 	
 	
 	position = position_measure();
-		USART_send_speed_setpoint = position;
 	position = FIR_filter(position);
-	
-	
+	if (USART_send_complete)
+	{
+		USART_send_speed_setpoint = position;
+	}
 	
 	if (powered)
 	{
@@ -223,8 +230,19 @@ ISR(TIMER2_COMP_vect)
 	{
 		new_position_setpoint = setpoint_measure();
 	}
+	
 	position_setpoint = FIR_filter2(new_position_setpoint);
-	USART_send_position_setpoint = position_setpoint;
+	
+	if (USART_send_complete)
+	{
+		USART_send_position_setpoint = position_setpoint;
+	}
+	
+	
+	
+	USART_send_complete = 0;
+	
+	
 	
 	#if DEBUG
 	PORTB &= ~(1<<0);

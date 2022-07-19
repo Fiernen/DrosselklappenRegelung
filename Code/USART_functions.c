@@ -22,6 +22,8 @@ void USART_init(void)
 	USART_send_speed_P_term = 0;
 	USART_send_duty_cycle = 0;
 	USART_send_speed_I_term = 0;
+	
+	USART_send_complete = 0;
 }
 
 
@@ -81,6 +83,8 @@ void USART_send_package(void)
 	USART_send_16(USART_send_speed_P_term);
 	USART_send_16(USART_send_speed_I_term);
 	USART_send_16(USART_send_duty_cycle);
+	
+	USART_send_complete = 1;
 }
 
 
@@ -194,6 +198,7 @@ void USART_receive_ISR(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_spee
 					{
 						header_finder[jj] = 0;
 					}
+					save_ctrl_params2EEPROM(*kP_position, *kP_speed, *TN_speed);
 					break;
 			}
 		}

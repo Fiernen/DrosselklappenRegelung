@@ -43,6 +43,6 @@ uint16_t USART_send_speed;
 uint16_t USART_send_speed_P_term;
 uint16_t USART_send_duty_cycle;
 uint16_t USART_send_speed_I_term;
-
+uint8_t USART_send_complete;
 
 #endif

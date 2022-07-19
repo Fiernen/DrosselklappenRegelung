@@ -38,6 +38,7 @@ int main(void)
 		DDRB |= 1<<DDB0;
 		DDRB |= 1<<DDB2;
 		DDRB |= 1<<DDB3;
+		DDRB |= 1<<DDB4;
 	#endif
 	
 	// Initialization:
@@ -65,7 +66,7 @@ int main(void)
 	while(1)
 	{	
 		// Catch new parameters:
-		USART_receive(&kP_position, &kP_speed, &TN_speed);
+//  		USART_receive(&kP_position, &kP_speed, &TN_speed);
 		
 		// Send to PC via USART:
 		#if DEBUG
@@ -87,16 +88,16 @@ int main(void)
 		}
 		else
 		{
-			// Display angles:
-			lcd_cmd(0x8A);
-			lcd_angle(position_setpoint, lcd_str);
-			lcd_text(lcd_str);
+// 			// Display angles:
+// 			lcd_cmd(0x8A);
+// 			lcd_angle(position_setpoint, lcd_str);
+// 			lcd_text(lcd_str);
+// 		
+// 			lcd_cmd(0xCA);
+// 			lcd_angle(position,lcd_str);
+// 			lcd_text(lcd_str);
 		
-			lcd_cmd(0xCA);
-			lcd_angle(position,lcd_str);
-			lcd_text(lcd_str);
-		
-			/*
+			
 			// Display controller parameters:
 			lcd_cmd(0x80);
 			lcd_text("kPp:");
@@ -112,7 +113,7 @@ int main(void)
 			lcd_text("TNs:");
 			lcd_zahl(TN_speed,lcd_str); // TN_speed
 			lcd_text(lcd_str);
-		
+			/*
 			// Display angles and ctrl paras
 			lcd_cmd(0x80);
 			lcd_angle(position_setpoint,lcd_str);
@@ -163,6 +164,9 @@ ISR(TIMER2_COMP_vect)
 	PORTB |= 1<<0; // Time measure
 	#endif
 	
+	
+	
+	// Stati:
 	static uint8_t powered = 0;
 	static uint8_t startup_mode_active = 0;
 	
@@ -229,24 +233,18 @@ ISR(TIMER2_COMP_vect)
 
 
 
-// /* ISR(USART_RXC_vect) is triggered when the controller is receiving
-// 
-// */
-// ISR(USART_RXC_vect)
-// {
-// 	sei();
-// 	USART_receive_ISR(&kP_position, &kP_speed, &TN_speed);
-// }
-// 
-// 
-// 
-// /* ISR(TIMER0_OVF_vect) sends the current state of the system via USART
-// 
-// */
-// ISR(TIMER0_OVF_vect)
-// {
-// 	sei();
-// 	USART_send_package();
-// }
-// 
+/* ISR(USART_RXC_vect) is triggered when the controller is receiving
+
+*/
+ISR(USART_RXC_vect)
+{
+	#if DEBUG
+	PORTB |= 1<<4; // Time measure
+	#endif
+	USART_receive_ISR(&kP_position, &kP_speed, &TN_speed);
+	#if DEBUG
+	PORTB &= ~(1<<4);
+	#endif
+}
+
 

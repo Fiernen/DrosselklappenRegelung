@@ -281,7 +281,7 @@ uint16_t Motor_controller(uint16_t position, uint16_t position_setpoint, uint8_t
 	speed_I_term = (int32_t) speed_error_integral/16;
 
 	// Controller output P+I, with limits/overflow protection:
-	duty_cycle = limit_int16((int32_t) speed_P_term + speed_I_term, INT16_MIN+1, INT16_MAX);
+	duty_cycle = limit_int16((int32_t) speed_I_term, INT16_MIN+1, INT16_MAX); // speed_P_term + 
 	if (USART_send_complete)
 	{
 		USART_send_duty_cycle = (int16_t) duty_cycle;

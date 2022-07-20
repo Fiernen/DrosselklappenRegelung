@@ -14,7 +14,7 @@ void USART_init(void)
 	UCSRB |= (1<<RXEN)|(1<<TXEN); // Enable receive and send
 	UCSRC = (1<<URSEL)|(1<<UCSZ1)|(1<<UCSZ0); // 8 data bits
 	
-	USART_send_position = 0;
+	USART_send_position = 80;
 	USART_send_position_setpoint = 0;
 	USART_send_duty_cycle_scaled = 0;
 	USART_send_speed_setpoint = 0;
@@ -23,7 +23,7 @@ void USART_init(void)
 	USART_send_duty_cycle = 0;
 	USART_send_speed_I_term = 0;
 	
-	USART_send_complete = 0;
+	USART_send_complete = 1;
 }
 
 

@@ -28,6 +28,7 @@ uint16_t position_setpoint = 0;
 uint8_t kP_position;
 uint8_t kP_speed;
 uint8_t TN_speed;
+// uint8_t startup_mode_active = 0;
 
 
 
@@ -174,15 +175,13 @@ ISR(TIMER2_COMP_vect)
 	
 	// Stati:
 	static uint8_t powered = 0;
-	static uint8_t startup_mode_active = 0;
-	
-	
-	
+	static startup_mode_active = 0;
+		
 	position = position_measure();
 	position = FIR_filter(position);
 	if (USART_send_complete)
 	{
-		USART_send_speed_setpoint = position;
+		USART_send_position = position;
 	}
 	
 	if (powered)
@@ -196,7 +195,7 @@ ISR(TIMER2_COMP_vect)
 		{
 			// When valve moved, it is assumed that the power electronics are turned on
 			powered = 1; // turns controller on
-			startup_mode_active = 1; // switch into startup mode
+			startup_mode_active = 1;
 		}
 	}
 	
@@ -206,7 +205,7 @@ ISR(TIMER2_COMP_vect)
 	static uint8_t setpoint_preset_number = 0;
 	#define controller_sample_frequency 900 // Frequency of interrupt
 	static uint16_t sample_counter = 0; // counts samples till next set point change in startup mode
-	uint16_t startup_setpoints[9] = {400,600,800,350,300,250,200,150,100};
+	uint16_t startup_setpoints[8] = {400,600,500,400,350,300,250,200};
 	uint16_t new_position_setpoint;
 	
 	if (startup_mode_active)
@@ -219,13 +218,15 @@ ISR(TIMER2_COMP_vect)
 			sample_counter = 0; // Reset sample counter
 		}
 		
-		if (setpoint_preset_number >= 9)
+		if (setpoint_preset_number >= 8)
 		{
+// 			setpoint_preset_number = 0;
 			startup_mode_active = 0;
 		}
 		
 		sample_counter++; // count up
 	}
+	
 	else // default operating mode (poti measure for set point and filter)
 	{
 		new_position_setpoint = setpoint_measure();

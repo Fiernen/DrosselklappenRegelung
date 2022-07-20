@@ -7,6 +7,6 @@ void USART_send_16(uint16_t msg);
 void USART_send_package(void);
 void USART_receive(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed);
 void USART_flush_receive(void);
-void USART_receive_ISR(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed);
+void USART_receive_ISR(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed, uint8_t* startup_mode_active);
 
 #endif /* USART_FUNCTIONS_H_ */

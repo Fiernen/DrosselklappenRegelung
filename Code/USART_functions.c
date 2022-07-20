@@ -134,7 +134,7 @@ void USART_flush_receive(void)
 
 
 
-void USART_receive_ISR(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed)
+void USART_receive_ISR(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_speed, uint8_t* startup_mode_active)
 {
 	static uint8_t header_finder[3] = {0};
 	static uint8_t finder_counter = 0;
@@ -192,7 +192,8 @@ void USART_receive_ISR(uint8_t* kP_position, uint8_t* kP_speed, uint8_t* TN_spee
 			{
 				case 0 : *kP_position = UDR; msg_counter++;	break;
 				case 1 : *kP_speed = UDR; msg_counter++; break;
-				case 2 : *TN_speed = UDR; msg_counter = 0;
+				case 2 : *TN_speed = UDR; msg_counter++;  break;
+				case 3 : *startup_mode_active = UDR; msg_counter = 0;
 					header_found = 0;
 					for (uint8_t jj = 0; jj < header_length; jj++)
 					{

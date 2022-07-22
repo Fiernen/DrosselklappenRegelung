@@ -75,6 +75,9 @@ int main(void)
 //  		USART_receive(&kP_position, &kP_speed, &TN_speed); // deprecated, solved with interrupt
 		
 		// Send to PC via USART:
+		USART_send_kP_position = kP_position;
+		USART_send_kP_speed = kP_speed;
+		USART_send_TN_speed = TN_speed;
 		#if DEBUG
 		PORTB |= 1<<3; // Time measure
 		#endif

@@ -44,5 +44,8 @@ uint16_t USART_send_speed_P_term;
 uint16_t USART_send_duty_cycle;
 uint16_t USART_send_speed_I_term;
 uint8_t USART_send_complete;
+uint8_t USART_send_kP_position;
+uint8_t USART_send_kP_speed;
+uint8_t USART_send_TN_speed;
 
 #endif
